@@ -11,16 +11,20 @@ function CourseRow({
   isLast: boolean
 }) {
   return (
-    <div className="flex gap-xs-mid">
-      {/* Timeline connector: circle vertically centered on the card, with line
-          segments above/below that join consecutive circle centers only. */}
+    <div className="flex gap-sm">
+      {/* Continuous timeline rail: line segments fill the full row height (incl.
+          the card's bottom margin) so the line never breaks between cards. */}
       <div className="flex w-[10px] shrink-0 flex-col items-center">
         <span className={`w-px flex-1 ${isFirst ? '' : 'bg-line'}`} />
         <span className="size-[10px] shrink-0 rounded-round border border-line bg-surface" />
         <span className={`w-px flex-1 ${isLast ? '' : 'bg-line'}`} />
       </div>
 
-      <div className="flex flex-1 gap-sm rounded-lg border border-line-subdued p-sm">
+      <div
+        className={`flex flex-1 gap-sm rounded-lg border border-line-subdued p-sm ${
+          isLast ? '' : 'mb-xs-mid'
+        }`}
+      >
         <img src={course.image} alt="" className="size-12 shrink-0 rounded-md object-cover" />
         <div className="flex flex-1 flex-col gap-sm">
           <div className="flex flex-col gap-xxs">
@@ -89,7 +93,7 @@ export function LearningPathCard({ courses, skeleton, curated }: LearningPathCar
         )}
       </div>
 
-      <div className="flex flex-col gap-xs-mid pl-xs">
+      <div className={`flex flex-col pl-xs ${skeleton ? 'gap-md' : ''}`}>
         {skeleton
           ? [0, 1, 2].map((i) => <SkeletonRow key={i} />)
           : courses.map((c, i) => (

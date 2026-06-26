@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PanelLeft, ArrowRight, Sparkles, TrendingUp } from 'lucide-react'
+import { PanelLeft, ArrowRight, Sparkles, TrendingUp, Check } from 'lucide-react'
 import { cn } from '@/components/ui/utils'
 import altusLogo from '@/assets/altus-logo.png'
 import { TypingIndicator } from './TypingIndicator'
@@ -14,6 +14,10 @@ export interface AltusMessage {
   id: string
   role: 'assistant' | 'user'
   text: string
+  /** Renders as a green "success" pill instead of a normal message. */
+  pill?: boolean
+  /** Bullet list of update options shown under the message (personalized done). */
+  options?: string[]
 }
 
 type AltusView = 'altus' | 'your-week'
@@ -66,10 +70,28 @@ export function AltusPanel(props: AltusPanelProps) {
         ) : (
           <div className="flex flex-col gap-md pt-xs">
             {props.messages.map((m) =>
-              m.role === 'assistant' ? (
-                <p key={m.id} className="text-sm leading-relaxed text-ink">
+              m.pill ? (
+                <span
+                  key={m.id}
+                  className="inline-flex w-fit items-center gap-xs rounded-round bg-surface-positive px-sm py-xs text-sm font-medium text-positive"
+                >
+                  <Check className="size-4" strokeWidth={2.5} />
                   {m.text}
-                </p>
+                </span>
+              ) : m.role === 'assistant' ? (
+                <div key={m.id} className="flex flex-col gap-xs">
+                  <p className="text-sm leading-relaxed text-ink">{m.text}</p>
+                  {m.options && (
+                    <ul className="flex flex-col gap-xxs pl-xs">
+                      {m.options.map((o) => (
+                        <li key={o} className="flex items-center gap-xs text-sm text-ink">
+                          <span className="size-1 rounded-round bg-ink-subdued" />
+                          {o}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               ) : (
                 <div key={m.id} className="flex justify-end">
                   <span className="max-w-[80%] rounded-lg bg-surface-accent px-sm py-xs text-sm text-ink">

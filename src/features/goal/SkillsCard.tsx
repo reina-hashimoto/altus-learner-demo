@@ -9,11 +9,13 @@ interface SkillsCardProps {
   mode: 'estimated' | 'selfReported'
   /** When true, skills aren't defined yet — render a loading skeleton (Custom flow). */
   skeleton?: boolean
+  /** Show the persona role label (appears once the learner states their role). */
+  showRole?: boolean
   onAssess?: (skillId: string) => void
   onTakeAssessment?: () => void
 }
 
-export function SkillsCard({ skills, role, mode, skeleton, onAssess, onTakeAssessment }: SkillsCardProps) {
+export function SkillsCard({ skills, role, mode, skeleton, showRole, onAssess, onTakeAssessment }: SkillsCardProps) {
   return (
     <section className="rounded-lg border border-line-subdued bg-surface p-md shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       <div className="mb-md flex items-center justify-between">
@@ -21,7 +23,9 @@ export function SkillsCard({ skills, role, mode, skeleton, onAssess, onTakeAsses
           Skills to develop
           <HelpCircle className="size-4 text-ink-subdued" strokeWidth={1.75} />
         </h2>
-        {!skeleton && <span className="text-xs font-medium text-ink-subdued">{role}</span>}
+        {!skeleton && showRole && (
+          <span className="text-xs font-medium text-ink-subdued">{role}</span>
+        )}
       </div>
 
       {skeleton ? (

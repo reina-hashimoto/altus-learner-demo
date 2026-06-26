@@ -12,9 +12,6 @@ import { getFlowConfig, type ChipDef } from '@/flows/config'
 
 type Stage = 'intro' | 'proficiency' | 'thinking' | 'done'
 
-const PROFICIENCY_PROMPT =
-  'Great, select the proficiency level that best matches your current skill level.'
-
 export default function GoalPage() {
   const { flowId } = useParams()
   const flow = getFlow(flowId) ?? getFlow(defaultFlowId)!
@@ -33,16 +30,22 @@ export default function GoalPage() {
   const nextId = () => `m${++idRef.current}`
 
   const done = stage === 'done'
-  const chartMode = done ? 'selfReported' : 'estimated'
-  const skillsSkeleton = !config.skillsKnown && !done
+  const chartMode = stage === 'thinking' || done ? 'selfReported' : 'estimated'
+  const skillsSkeleton = !config.skillsKnown && stage === 'intro'
   const pathSkeleton = config.pathMode === 'empty' && !done
+
+  // Flex shortens its first course once the path is tailored.
+  const displayedCourses =
+    done && config.tailorFirstCourse
+      ? config.courses.map((c, i) => (i === 0 ? { ...c, ...config.tailorFirstCourse } : c))
+      : config.courses
 
   const startProficiency = (role?: string) => {
     if (stage !== 'intro') return
     setMessages((prev) => {
       const next = [...prev]
       if (role) next.push({ id: nextId(), role: 'user', text: role })
-      next.push({ id: nextId(), role: 'assistant', text: PROFICIENCY_PROMPT })
+      next.push({ id: nextId(), role: 'assistant', text: config.proficiencyPrompt })
       return next
     })
     setStage('proficiency')
@@ -68,7 +71,16 @@ export default function GoalPage() {
   const handleProficiencySubmit = () => {
     setStage('thinking')
     window.setTimeout(() => {
-      setMessages((prev) => [...prev, { id: nextId(), role: 'assistant', text: config.doneMessage }])
+      setMessages((prev) => [
+        ...prev,
+        { id: nextId(), role: 'assistant', text: 'Skill proficiency updated', pill: true },
+        {
+          id: nextId(),
+          role: 'assistant',
+          text: config.doneMessage,
+          options: config.doneStyle === 'personalized' ? config.doneOptions : undefined,
+        },
+      ])
       setStage('done')
     }, 1800)
   }
@@ -87,11 +99,12 @@ export default function GoalPage() {
                 role={config.role}
                 mode={chartMode}
                 skeleton={skillsSkeleton}
+                showRole={stage !== 'intro'}
                 onAssess={() => startProficiency()}
                 onTakeAssessment={() => startProficiency()}
               />
               <LearningPathCard
-                courses={config.courses}
+                courses={displayedCourses}
                 skeleton={pathSkeleton}
                 curated={config.pathMode === 'fixed'}
               />

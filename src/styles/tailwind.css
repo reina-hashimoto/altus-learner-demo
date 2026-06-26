@@ -1,0 +1,111 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+ * Tailwind v4 theme — every utility traces back to a real Udemy DS token
+ * (defined in ds-tokens.css). Use SEMANTIC names in product code:
+ *   text-ink / text-ink-subdued / text-link / text-on-brand
+ *   bg-surface / bg-surface-pale / bg-surface-accent / bg-brand
+ *   border-line / border-line-subdued / border-brand
+ *   rounded-{sm,md,lg,xl,xxl,round}  ·  p-/gap-/m- {xxs..4xl}
+ * Primitive ramps (gray/purple/green/red/orange/teal) are exposed too for the
+ * rare exact-match case, but prefer semantic tokens.
+ * ------------------------------------------------------------------------- */
+@theme {
+  --font-sans: 'Udemy Sans Web', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  --font-mono: 'SF Mono', 'SFMono-Regular', consolas, monospace;
+
+  /* --- semantic text --- */
+  --color-ink: var(--color-text-default);
+  --color-ink-subdued: var(--color-text-subdued);
+  --color-ink-inverted: var(--color-text-default-inverted);
+  --color-ink-subdued-inverted: var(--color-text-subdued-inverted);
+  --color-link: var(--color-text-link);
+  --color-on-brand: var(--color-text-white);
+  --color-positive: var(--color-text-positive);
+  --color-negative: var(--color-text-negative);
+  --color-warning: var(--color-text-warning);
+
+  /* --- semantic surfaces --- */
+  --color-surface: var(--background-color-default);
+  --color-surface-pale: var(--background-color-pale);
+  --color-surface-midtone: var(--background-color-midtone);
+  --color-surface-accent: var(--background-color-accent);
+  --color-surface-accent-dark: var(--background-color-accent-dark);
+  --color-surface-dark: var(--background-color-dark);
+  --color-surface-positive: var(--background-color-positive);
+  --color-surface-warning: var(--background-color-warning);
+  --color-surface-negative: var(--background-color-negative);
+
+  /* --- brand --- */
+  --color-brand: var(--color-purple-400);
+  --color-brand-strong: var(--color-purple-500);
+  --color-brand-bright: var(--color-purple-300);
+  --color-brand-pale: var(--color-purple-100);
+
+  /* --- semantic lines/borders --- */
+  --color-line: var(--border-color-default);
+  --color-line-subdued: var(--border-color-subdued);
+  --color-line-accent: var(--border-color-accent);
+  --color-line-brand: var(--border-color-button);
+  --color-line-input: var(--border-color-input);
+  --color-line-focus: var(--border-color-focus);
+
+  /* --- icon --- */
+  --color-icon: var(--color-icon-neutral);
+  --color-icon-muted: var(--color-icon-subdued);
+
+  /* --- primitive ramps (exact-match escape hatch) --- */
+  --color-gray-100: var(--color-gray-100);
+  --color-gray-150: var(--color-gray-150);
+  --color-gray-200: var(--color-gray-200);
+  --color-gray-250: var(--color-gray-250);
+  --color-gray-300: var(--color-gray-300);
+  --color-gray-350: var(--color-gray-350);
+  --color-gray-400: var(--color-gray-400);
+  --color-gray-450: var(--color-gray-450);
+  --color-gray-500: var(--color-gray-500);
+  --color-gray-550: var(--color-gray-550);
+  --color-gray-600: var(--color-gray-600);
+  --color-gray-650: var(--color-gray-650);
+  --color-purple-100: var(--color-purple-100);
+  --color-purple-200: var(--color-purple-200);
+  --color-purple-300: var(--color-purple-300);
+  --color-purple-400: var(--color-purple-400);
+  --color-purple-500: var(--color-purple-500);
+  --color-green-300: var(--color-green-300);
+  --color-green-400: var(--color-green-400);
+  --color-orange-300: var(--color-orange-300);
+  --color-orange-400: var(--color-orange-400);
+  --color-red-400: var(--color-red-400);
+
+  /* --- radius (Udemy ramp) --- */
+  --radius-sm: var(--border-radius-sm);
+  --radius-md: var(--border-radius-md);
+  --radius-lg: var(--border-radius-lg);
+  --radius-xl: var(--border-radius-xl);
+  --radius-xxl: var(--border-radius-xxl);
+  --radius-round: var(--border-radius-round);
+
+  /* --- named spacing (Udemy ramp) — adds p-md, gap-lg, etc. --- */
+  --spacing-xxs: var(--space-xxs);
+  --spacing-xs: var(--space-xs);
+  --spacing-xs-mid: var(--space-xs-mid);
+  --spacing-sm: var(--space-sm);
+  --spacing-md: var(--space-md);
+  --spacing-lg: var(--space-lg);
+  --spacing-xl: var(--space-xl);
+  --spacing-xxl: var(--space-xxl);
+  --spacing-xxxl: var(--space-xxxl);
+  --spacing-4xl: var(--space-4xl);
+
+  /* --- font sizes (Udemy ramp) — adds text-sm/md/lg/xl/... --- */
+  --text-xxs: var(--font-size-xxs);
+  --text-xs: var(--font-size-xs);
+  --text-sm: var(--font-size-sm);
+  --text-md: var(--font-size-md);
+  --text-lg: var(--font-size-lg);
+  --text-xl: var(--font-size-xl);
+  --text-xxl: var(--font-size-xxl);
+  --text-xxxl: var(--font-size-xxxl);
+}

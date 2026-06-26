@@ -1,0 +1,191 @@
+:root{
+  /* ===== Udemy Design System tokens — generated from design-system-web-react-19 (@udemy-v2/styles) ===== */
+  /* Primitives (hex). Prefer SEMANTIC tokens below in product code. */
+  --color-gray-650: #16161d;
+  --color-gray-600: #202230;
+  --color-gray-550: #2a2b3f;
+  --color-gray-500: #33364a;
+  --color-gray-450: #3d4055;
+  --color-gray-400: #595c73;
+  --color-gray-350: #6f7390;
+  --color-gray-300: #9194ac;
+  --color-gray-250: #b7b9cd;
+  --color-gray-200: #d1d2e0;
+  --color-gray-150: #e9eaf2;
+  --color-gray-100: #f6f7f9;
+  --color-red-500: #940a00;
+  --color-red-450: #c20d00;
+  --color-red-400: #d51c0f;
+  --color-red-350: #ea3124;
+  --color-red-300: #ff493c;
+  --color-red-250: #ff7e74;
+  --color-red-200: #ffb7b2;
+  --color-red-150: #ffd1ce;
+  --color-red-100: #ffeceb;
+  --color-orange-500: #8b4309;
+  --color-orange-450: #a7590c;
+  --color-orange-400: #c4710d;
+  --color-orange-350: #df890c;
+  --color-orange-300: #f69c08;
+  --color-orange-250: #f5b448;
+  --color-orange-200: #ffcc80;
+  --color-orange-150: #ffe1b2;
+  --color-orange-100: #fff6e5;
+  --color-green-500: #123825;
+  --color-green-450: #194d33;
+  --color-green-400: #206241;
+  --color-green-350: #1f8552;
+  --color-green-300: #1ea863;
+  --color-green-250: #5cbe8a;
+  --color-green-200: #8cd3b0;
+  --color-green-150: #bbe7d3;
+  --color-green-100: #ebfaf4;
+  --color-teal-600: #082b35;
+  --color-teal-550: #0b3e4a;
+  --color-teal-500: #0d5261;
+  --color-teal-450: #0d697a;
+  --color-teal-400: #0e8390;
+  --color-teal-350: #199aa3;
+  --color-teal-300: #45b5bb;
+  --color-teal-250: #72d3d8;
+  --color-teal-200: #97dfe3;
+  --color-teal-150: #c2e9eb;
+  --color-teal-100: #e4f5f6;
+  --color-purple-600: #180a3d;
+  --color-purple-550: #291367;
+  --color-purple-500: #3b1b94;
+  --color-purple-450: #5022c3;
+  --color-purple-400: #6d28d2;
+  --color-purple-350: #892de1;
+  --color-purple-300: #a435f0;
+  --color-purple-250: #af72fd;
+  --color-purple-200: #bda1ff;
+  --color-purple-150: #d2caff;
+  --color-purple-100: #f2efff;
+  --color-white: #ffffff;
+  --color-knockout: #ffffff;
+  --color-icon-neutral: #2a2b3f;
+  --color-icon-positive: #206241;
+  --color-icon-negative: #d51c0f;
+  --color-icon-info: #6d28d2;
+  --color-icon-warning: #c4710d;
+  --color-icon-subdued: #595c73;
+  --color-icon-star: #c4710d;
+  --color-icon-knockout: #ffffff;
+  --color-text-default: #2a2b3f;
+  --color-text-subdued: #595c73;
+  --color-text-white: #ffffff;
+  --color-text-knockout: #ffffff;
+  --color-text-link: #6d28d2;
+  --color-text-link-decoration: #af72fd;
+  --color-text-positive: #206241;
+  --color-text-positive-dark: #123825;
+  --color-text-negative: #d51c0f;
+  --color-text-negative-dark: #940a00;
+  --color-text-warning: #c4710d;
+  --color-text-warning-dark: #8b4309;
+  --color-text-info: #2a2b3f;
+  --color-text-star: #8b4309;
+  --color-text-default-inverted: #ffffff;
+  --color-text-link-inverted: #bda1ff;
+  --color-text-subdued-inverted: #d1d2e0;
+  --color-icon-subdued-inverted: #b7b9cd;
+  --color-icon-star-inverted: #f69c08;
+  /* Semantic tokens — USE THESE (alias primitives). */
+  --color-icon-neutral: var(--color-gray-550);
+  --color-icon-positive: var(--color-green-400);
+  --color-icon-negative: var(--color-red-400);
+  --color-icon-info: var(--color-purple-400);
+  --color-icon-warning: var(--color-orange-400);
+  --color-icon-subdued: var(--color-gray-400);
+  --color-icon-star: var(--color-orange-400);
+  --color-icon-knockout: var(--color-knockout);
+  --color-text-default: var(--color-gray-550);
+  --color-text-subdued: var(--color-gray-400);
+  --color-text-white: var(--color-white);
+  --color-text-knockout: var(--color-knockout);
+  --color-text-link: var(--color-purple-400);
+  --color-text-link-decoration: var(--color-purple-250);
+  --color-text-positive: var(--color-green-400);
+  --color-text-positive-dark: var(--color-green-500);
+  --color-text-negative: var(--color-red-400);
+  --color-text-negative-dark: var(--color-red-500);
+  --color-text-warning: var(--color-orange-400);
+  --color-text-warning-dark: var(--color-orange-500);
+  --color-text-info: var(--color-gray-550);
+  --color-text-star: var(--color-orange-500);
+  --border-color-inverted: var(--color-gray-400);
+  --color-text-default-inverted: var(--color-text-white);
+  --color-text-link-inverted: var(--color-purple-200);
+  --color-text-subdued-inverted: var(--color-gray-200);
+  --color-icon-subdued-inverted: var(--color-gray-250);
+  --color-icon-star-inverted: var(--color-orange-300);
+  --border-color-default: var(--color-gray-200);
+  --border-color-subdued: var(--color-gray-150);
+  --border-color-accent: var(--color-purple-150);
+  --border-color-dark: var(--color-gray-500);
+  --border-color-knockout: var(--color-knockout);
+  --border-color-input: var(--color-gray-300);
+  --border-color-input-focus: var(--color-purple-400);
+  --border-color-button: var(--color-purple-400);
+  --border-color-focus: var(--color-purple-400);
+  --border-color-positive: var(--color-green-400);
+  --border-color-negative: var(--color-red-400);
+  --border-color-warning: var(--color-orange-400);
+  --border-color-info: var(--border-color-default);
+  --background-color-default: var(--color-white);
+  --background-color-accent: var(--color-purple-100);
+  --background-color-accent-dark: var(--color-purple-500);
+  --background-color-pale: var(--color-gray-100);
+  --background-color-midtone: var(--color-gray-150);
+  --background-color-dark: var(--color-gray-650);
+  --background-color-info: var(--color-gray-100);
+  --background-color-warning: var(--color-orange-100);
+  --background-color-positive: var(--color-green-100);
+  --background-color-negative: var(--color-red-100);
+  /* Spacing (px). */
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-xs-mid: 12px;
+  --space-sm: 16px;
+  --space-md: 24px;
+  --space-lg: 32px;
+  --space-xl: 48px;
+  --space-xxl: 64px;
+  --space-xxxl: 96px;
+  --space-4xl: 144px;
+  /* Radius. */
+  --border-radius-square: 0;
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
+  --border-radius-xxl: 32px;
+  --border-radius-round: 1000px;
+  /* Fonts. */
+  --font-family-text: 'Udemy Sans Web', sans-serif;
+  --font-family-heading: 'Udemy Sans Web', sans-serif;
+  --font-family-mono: 'SF Mono','SFMono-Regular',consolas,monospace;
+  /* Font sizes — in PX (this app's root font-size makes rem != px, so we use px
+     to match existing values exactly). DS source is rem; lg+ are fluid clamp()
+     in the DS (we use the desktop/max value). */
+  --font-size-xxs: 10px;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;   /* fluid in DS */
+  --font-size-xl: 24px;   /* fluid */
+  --font-size-xxl: 32px;  /* fluid */
+  --font-size-xxxl: 48px; /* fluid */
+  --font-size-4xl: 56px;  /* fluid */
+  --font-size-5xl: 72px;  /* fluid */
+  /* Font weights. */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  /* Line heights — the DS exposes two semantic tokens (other ramp values like
+     1.1/1.4/1.5 are baked into per-size type mixins, not tokens). */
+  --line-height-heading: 1.2;
+  --line-height-text: 1.6;
+}

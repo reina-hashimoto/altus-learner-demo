@@ -1,0 +1,164 @@
+/* Udemy Sans Web — the brand font.
+ * Four weights ship as woff2; otf siblings live next to them in
+ * src/assets/fonts/ as a fallback for the rare browser that doesn't
+ * accept woff2. Each weight is exposed under TWO family names so the
+ * existing JSX classes (e.g. font-['Udemy Sans Web:Regular',sans-serif],
+ * font-['Udemy_Sans_Web:Medium',sans-serif]) resolve without touching
+ * every component. Underscore + dot-syntax variants must stay in sync
+ * with the names used in src/.
+ */
+
+/* Regular — 400 */
+@font-face {
+  font-family: 'Udemy_Sans_Web:Regular';
+  src:
+    url('../assets/fonts/Udemy-Sans-Regular-v1.woff2') format('woff2'),
+    url('../assets/fonts/Udemy-Sans-Regular-v1.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Light — 300 */
+@font-face {
+  font-family: 'Udemy_Sans_Web:Light';
+  src:
+    url('../assets/fonts/Udemy-Sans-Light-v1.woff2') format('woff2'),
+    url('../assets/fonts/Udemy-Sans-Light-v1.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Medium — 500 */
+@font-face {
+  font-family: 'Udemy_Sans_Web:Medium';
+  src:
+    url('../assets/fonts/Udemy-Sans-Medium-v1.woff2') format('woff2'),
+    url('../assets/fonts/Udemy-Sans-Medium-v1.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Bold — 700 */
+@font-face {
+  font-family: 'Udemy_Sans_Web:Bold';
+  src:
+    url('../assets/fonts/Udemy-Sans-Bold-v1.woff2') format('woff2'),
+    url('../assets/fonts/Udemy-Sans-Bold-v1.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Canonical family — sets all four weights under a single name so
+ * NEW code can use font-family: 'Udemy Sans Web' + font-weight: 500
+ * instead of the suffixed pseudo-families above. The suffixed family
+ * names exist only for backwards-compatibility with Figma-Make-style
+ * arbitrary classes; new component code should prefer this one and
+ * Tailwind's font-weight utilities. */
+@font-face {
+  font-family: 'Udemy Sans Web';
+  src:
+    url('../assets/fonts/Udemy-Sans-Regular-v1.woff2') format('woff2'),
+    url('../assets/fonts/Udemy-Sans-Regular-v1.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Udemy Sans Web';
+  src:
+    url('../assets/fonts/Udemy-Sans-Light-v1.woff2') format('woff2'),
+    url('../assets/fonts/Udemy-Sans-Light-v1.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Udemy Sans Web';
+  src:
+    url('../assets/fonts/Udemy-Sans-Medium-v1.woff2') format('woff2'),
+    url('../assets/fonts/Udemy-Sans-Medium-v1.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Udemy Sans Web';
+  src:
+    url('../assets/fonts/Udemy-Sans-Bold-v1.woff2') format('woff2'),
+    url('../assets/fonts/Udemy-Sans-Bold-v1.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------------------------------------------------------------------------
+ * Japanese (CJK) glyph coverage.
+ *
+ * Udemy Sans Web ships Latin only, so Japanese text would otherwise fall back
+ * to the browser default. We attach CJK coverage to the SAME family names the
+ * app already uses (canonical + the Figma-Make suffixed pseudo-families) via
+ * `unicode-range`, so any element using these fonts automatically renders
+ * Japanese with the system font first (Hiragino on macOS, Yu Gothic on
+ * Windows) and Noto Sans JP as a downloadable fallback — with NO component
+ * changes. Latin codepoints are untouched and keep using Udemy Sans Web.
+ *
+ * The unicode-range covers: Hiragana, Katakana, CJK Unified Ideographs,
+ * full-width/half-width forms, and CJK symbols & punctuation.
+ * ------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Udemy Sans Web';
+  src:
+    local('Hiragino Sans'),
+    local('Hiragino Kaku Gothic ProN'),
+    local('Yu Gothic'),
+    local('Noto Sans JP'),
+    url('https://fonts.gstatic.com/s/notosansjp/v52/-F6jfjtqLzI2JPCgQBnw7HFow2oe2EmqWdTd-Cg.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF00-FFEF, U+4E00-9FFF, U+3400-4DBF;
+}
+@font-face {
+  font-family: 'Udemy_Sans_Web:Regular';
+  src:
+    local('Hiragino Sans'), local('Hiragino Kaku Gothic ProN'), local('Yu Gothic'), local('Noto Sans JP'),
+    url('https://fonts.gstatic.com/s/notosansjp/v52/-F6jfjtqLzI2JPCgQBnw7HFow2oe2EmqWdTd-Cg.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF00-FFEF, U+4E00-9FFF, U+3400-4DBF;
+}
+@font-face {
+  font-family: 'Udemy_Sans_Web:Light';
+  src:
+    local('Hiragino Sans'), local('Hiragino Kaku Gothic ProN'), local('Yu Gothic'), local('Noto Sans JP'),
+    url('https://fonts.gstatic.com/s/notosansjp/v52/-F6jfjtqLzI2JPCgQBnw7HFow2oe2EmqWdTd-Cg.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF00-FFEF, U+4E00-9FFF, U+3400-4DBF;
+}
+@font-face {
+  font-family: 'Udemy_Sans_Web:Medium';
+  src:
+    local('Hiragino Sans'), local('Hiragino Kaku Gothic ProN'), local('Yu Gothic'), local('Noto Sans JP'),
+    url('https://fonts.gstatic.com/s/notosansjp/v52/-F6jfjtqLzI2JPCgQBnw7HFow2oe2EmqWdTd-Cg.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF00-FFEF, U+4E00-9FFF, U+3400-4DBF;
+}
+@font-face {
+  font-family: 'Udemy_Sans_Web:Bold';
+  src:
+    local('Hiragino Sans'), local('Hiragino Kaku Gothic ProN'), local('Yu Gothic'), local('Noto Sans JP'),
+    url('https://fonts.gstatic.com/s/notosansjp/v52/-F6jfjtqLzI2JPCgQBnw7HFow2oe2EmqWdTd-Cg.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF00-FFEF, U+4E00-9FFF, U+3400-4DBF;
+}

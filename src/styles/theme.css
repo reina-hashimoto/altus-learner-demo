@@ -1,0 +1,87 @@
+/* ---------------------------------------------------------------------------
+ * shadcn → Udemy bridge.
+ * The ported ui/ primitives reference shadcn variable names (--primary,
+ * --border, --ring, …). Here we point those names at real Udemy DS tokens, so
+ * the primitives inherit Udemy colors/radius with zero per-component edits.
+ * There is NO raw hex here — every value resolves to a token in ds-tokens.css.
+ * ------------------------------------------------------------------------- */
+:root {
+  --background: var(--background-color-default);
+  --foreground: var(--color-text-default);
+
+  --card: var(--background-color-default);
+  --card-foreground: var(--color-text-default);
+  --popover: var(--background-color-default);
+  --popover-foreground: var(--color-text-default);
+
+  --primary: var(--color-purple-400);
+  --primary-foreground: var(--color-text-white);
+
+  --secondary: var(--color-gray-100);
+  --secondary-foreground: var(--color-text-default);
+
+  --muted: var(--color-gray-100);
+  --muted-foreground: var(--color-text-subdued);
+
+  --accent: var(--color-purple-100);
+  --accent-foreground: var(--color-purple-400);
+
+  --destructive: var(--color-red-400);
+  --destructive-foreground: var(--color-text-white);
+
+  --border: var(--border-color-default);
+  --input: var(--border-color-input);
+  --input-background: var(--color-white);
+  --switch-background: var(--color-gray-250);
+  --ring: var(--border-color-focus);
+
+  --radius: var(--border-radius-md);
+
+  --chart-1: var(--color-purple-400);
+  --chart-2: var(--color-teal-400);
+  --chart-3: var(--color-green-400);
+  --chart-4: var(--color-orange-400);
+  --chart-5: var(--color-red-400);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-family-text);
+  font-weight: var(--font-weight-light);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

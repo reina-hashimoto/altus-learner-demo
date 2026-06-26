@@ -17,7 +17,7 @@ interface SkillsCardProps {
 
 export function SkillsCard({ skills, role, mode, skeleton, showRole, onAssess, onTakeAssessment }: SkillsCardProps) {
   return (
-    <section className="rounded-lg border border-line-subdued bg-surface p-md shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <section className="rounded-lg bg-surface p-lg shadow-[var(--box-shadow-100)]">
       <div className="mb-md flex items-center justify-between">
         <h2 className="flex items-center gap-xs text-lg font-medium text-ink">
           Skills to develop

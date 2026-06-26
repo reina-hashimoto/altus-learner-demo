@@ -91,7 +91,7 @@ export default function GoalPage() {
       <div className="flex flex-1 overflow-hidden">
         <LeftRail />
         <div className="grid flex-1 grid-cols-2 overflow-hidden">
-          <div className="overflow-y-auto border-r border-line-subdued px-lg py-md">
+          <div className="overflow-y-auto bg-surface-pale px-lg py-md">
             <div className="mx-auto flex max-w-[620px] flex-col gap-md">
               <GoalHeader title={config.goalTitle} />
               <SkillsCard

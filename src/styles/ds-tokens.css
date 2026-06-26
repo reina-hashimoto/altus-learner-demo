@@ -162,6 +162,10 @@
   --border-radius-xl: 24px;
   --border-radius-xxl: 32px;
   --border-radius-round: 1000px;
+  /* Elevation — DS BoxShadow100 (cards/surfaces).
+     color $box-shadow-100 = #8c8693 @ 0x14 alpha; offsets/blur per drop-shadow tokens. */
+  --box-shadow-100-color: rgba(140, 134, 147, 0.08);
+  --box-shadow-100: 0 4px 16px var(--box-shadow-100-color), 0 2px 8px var(--box-shadow-100-color);
   /* Fonts. */
   --font-family-text: 'Udemy Sans Web', sans-serif;
   --font-family-heading: 'Udemy Sans Web', sans-serif;

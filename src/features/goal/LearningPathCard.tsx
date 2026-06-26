@@ -74,7 +74,7 @@ interface LearningPathCardProps {
 export function LearningPathCard({ courses, skeleton, curated }: LearningPathCardProps) {
   const total = courses.length
   return (
-    <section className="flex flex-col gap-lg rounded-lg border border-line-subdued bg-surface p-lg shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <section className="flex flex-col gap-lg rounded-lg bg-surface p-lg shadow-[var(--box-shadow-100)]">
       <div className="flex items-start justify-between gap-sm">
         <div className="flex items-center gap-sm">
           {!skeleton && (

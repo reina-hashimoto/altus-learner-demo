@@ -33,7 +33,7 @@ export function SkillProficiencyForm({ skills, values, onChange, onSubmit }: Ski
             </div>
             <p className="text-xs leading-snug text-ink-subdued">{skill.description}</p>
 
-            <div className="mt-xxs grid grid-cols-4 overflow-hidden rounded-sm">
+            <div className="mt-xxs grid grid-cols-4 gap-xs">
               {PROFICIENCY_LEVELS.map((level, idx) => {
                 const selected = values[skill.id] === idx
                 return (
@@ -41,11 +41,10 @@ export function SkillProficiencyForm({ skills, values, onChange, onSubmit }: Ski
                     key={level}
                     onClick={() => onChange(skill.id, idx)}
                     className={cn(
-                      'border border-r-0 px-xs py-xs text-xs font-bold transition-colors last:border-r',
-                      'first:rounded-l-sm last:rounded-r-sm',
+                      'rounded-sm px-xs py-xs text-xs font-bold transition-colors',
                       selected
-                        ? 'border-brand bg-brand text-on-brand'
-                        : 'border-line bg-surface-pale text-ink hover:bg-surface-midtone',
+                        ? 'bg-brand text-on-brand'
+                        : 'bg-surface-pale text-ink hover:bg-surface-midtone',
                     )}
                   >
                     {level}

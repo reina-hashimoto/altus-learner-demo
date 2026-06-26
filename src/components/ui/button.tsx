@@ -16,8 +16,8 @@ const buttonVariants = cva(
       udStyle: {
         primary: 'bg-brand text-on-brand hover:bg-brand-strong active:bg-brand-strong',
         secondary:
-          'border border-[var(--border-color-button)] bg-surface text-brand hover:bg-brand-pale active:bg-brand-pale',
-        ghost: 'bg-transparent text-brand hover:bg-brand-pale active:bg-brand-pale',
+          'border border-line bg-surface text-brand hover:bg-surface-accent active:bg-surface-accent',
+        ghost: 'bg-transparent text-brand hover:bg-surface-accent active:bg-surface-accent',
         link: 'bg-transparent text-link underline-offset-2 hover:underline',
         destructive:
           'bg-[var(--color-red-400)] text-on-brand hover:opacity-90 active:opacity-90',

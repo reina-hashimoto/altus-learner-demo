@@ -34,10 +34,10 @@ function CourseRow({ course, isLast }: { course: Course; isLast: boolean }) {
 function SkeletonRow() {
   return (
     <div className="mb-sm flex gap-sm" aria-hidden>
-      <div className="size-[88px] shrink-0 rounded-md bg-surface-midtone" />
+      <div className="skeleton size-[88px] shrink-0 rounded-md" />
       <div className="flex flex-1 flex-col justify-center gap-xs">
         {['100%', '92%', '96%', '55%'].map((w, i) => (
-          <div key={i} className="h-3 rounded-round bg-surface-midtone" style={{ width: w }} />
+          <div key={i} className="skeleton h-3 rounded-round" style={{ width: w }} />
         ))}
       </div>
     </div>

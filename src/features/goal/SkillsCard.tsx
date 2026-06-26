@@ -52,7 +52,7 @@ function SkeletonLines() {
   return (
     <div className="flex flex-col gap-sm py-xs" aria-hidden>
       {widths.map((w, i) => (
-        <div key={i} className="h-3 rounded-round bg-surface-midtone" style={{ width: w }} />
+        <div key={i} className="skeleton h-3 rounded-round" style={{ width: w }} />
       ))}
     </div>
   )

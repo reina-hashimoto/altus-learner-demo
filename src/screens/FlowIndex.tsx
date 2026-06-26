@@ -16,8 +16,10 @@ export default function FlowIndex() {
   const [tab, setTab] = useState<HubTab>(firstWithFlows ?? 'beta')
 
   const tabFlows = flows.filter((f) => f.tab === tab)
+  // Group by scenario (post-beta) or by the flow's own label (standalone beta).
   const groups = tabFlows.reduce<Record<string, Flow[]>>((acc, f) => {
-    ;(acc[f.scenario] ??= []).push(f)
+    const key = f.scenario ?? f.label ?? f.id
+    ;(acc[key] ??= []).push(f)
     return acc
   }, {})
 
@@ -28,13 +30,7 @@ export default function FlowIndex() {
       </header>
 
       <main className="mx-auto max-w-[920px] px-md py-xl">
-        <p className="text-sm font-bold uppercase tracking-wide text-brand">Altus · Learner</p>
-        <h1 className="mt-xxs text-xxl font-medium">Prototype hub</h1>
-        <p className="mt-xs max-w-[60ch] text-md text-ink-subdued">
-          Altus learner-experience prototypes. Pick a flow to play it.
-        </p>
-
-        <div className="mt-lg flex gap-xs border-b border-line">
+        <div className="flex gap-xs border-b border-line">
           {TABS.map((t) => (
             <button
               key={t}
@@ -57,9 +53,11 @@ export default function FlowIndex() {
         ) : (
           <div className="mt-md flex flex-col gap-md">
             {Object.values(groups).map((group) => (
-              <section key={group[0].scenario} className="rounded-lg border border-line bg-surface p-md">
-                <h2 className="text-lg font-medium">{group[0].scenario}</h2>
-                <p className="mt-xxs max-w-[70ch] text-sm text-ink-subdued">{group[0].scenarioBlurb}</p>
+              <section key={group[0].id} className="rounded-lg border border-line bg-surface p-md">
+                <h2 className="text-lg font-medium">{group[0].scenario ?? group[0].label}</h2>
+                <p className="mt-xxs max-w-[70ch] text-sm text-ink-subdued">
+                  {group[0].scenarioBlurb ?? group[0].blurb}
+                </p>
                 <div className="mt-sm flex flex-wrap gap-sm">
                   {group.map((f) => (
                     <FlowChip key={f.id} flow={f} />
@@ -75,7 +73,7 @@ export default function FlowIndex() {
 }
 
 function FlowChip({ flow }: { flow: Flow }) {
-  const label = PERSONA_LABEL[flow.persona]
+  const label = flow.persona ? PERSONA_LABEL[flow.persona] : 'Open'
   if (flow.status !== 'ready') {
     return (
       <span className="inline-flex items-center gap-xs rounded-round border border-line-subdued bg-surface-pale px-md py-xs text-sm text-ink-subdued">

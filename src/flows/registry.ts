@@ -1,4 +1,6 @@
 import GoalPage from '@/screens/GoalPage'
+import AdminGoalFlow from '@/screens/beta/admin/AdminGoalFlow'
+import PersonalGoalFlow from '@/screens/beta/personal/PersonalGoalFlow'
 import type { Flow } from './types'
 
 /**
@@ -18,6 +20,27 @@ function flow(
 }
 
 export const flows: Flow[] = [
+  // ── Beta: end-to-end journeys ──
+  {
+    id: 'admin-goal-e2e',
+    tab: 'beta',
+    status: 'ready',
+    label: 'Admin goal E2E',
+    blurb: 'Org-assigned goal → set up your goals → streak home → skills & goal detail.',
+    component: AdminGoalFlow,
+    figmaNodes: ['158:8926', '285:7292', '1046:45588'],
+  },
+  {
+    id: 'personal-goal-e2e',
+    tab: 'beta',
+    status: 'ready',
+    label: 'Personal goal E2E',
+    blurb: 'Learner sets a personal goal → setup → goal detail (Altus active, then disabled).',
+    component: PersonalGoalFlow,
+    figmaNodes: ['285:7120', '777:43571', '1095:55993', '1100:58085'],
+  },
+
+  // ── Post-beta: scenario × persona ──
   flow('fixed-pm', 'fixed', '2) Fixed', 'Org-curated learning path is fixed up front; the learner self-assesses against it.', 'product-manager', ['7012:70549', '7012:76886', '7012:78718', '7012:80263', '7012:81380', '7012:84343']),
   flow('fixed-ds', 'fixed', '2) Fixed', 'Org-curated learning path is fixed up front; the learner self-assesses against it.', 'data-scientist', ['7012:85306', '7012:85826', '7012:86346', '7012:86866', '7012:87386', '7012:87906']),
 

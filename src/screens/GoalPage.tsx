@@ -15,7 +15,7 @@ type Stage = 'intro' | 'proficiency' | 'thinking' | 'done'
 export default function GoalPage() {
   const { flowId } = useParams()
   const flow = getFlow(flowId) ?? getFlow(defaultFlowId)!
-  const config = getFlowConfig(flow.scenarioId, flow.persona)
+  const config = getFlowConfig(flow.scenarioId ?? 'fixed', flow.persona ?? 'product-manager')
 
   const introMessages: AltusMessage[] = config.intro.map((text, i) => ({
     id: `intro-${i}`,

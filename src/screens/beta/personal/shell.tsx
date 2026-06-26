@@ -1,0 +1,65 @@
+import { Search } from 'lucide-react'
+import avatar from '@/assets/avatar.png'
+import udemyBusinessLogo from '@/assets/udemy-business-logo.png'
+
+/**
+ * Self-contained top chrome for the personal-goal flow. Mirrors the shared
+ * UBHeader but kept local so the flow has no router dependency. The
+ * category nav bar below is part of the marketplace home screens (1 & 2).
+ */
+export function PersonalHeader() {
+  return (
+    <header className="flex h-[72px] shrink-0 items-center gap-md border-b border-line-subdued bg-surface px-md">
+      <a href="#" aria-label="Udemy Business">
+        <img src={udemyBusinessLogo} alt="Udemy Business" className="h-[34px] w-auto" />
+      </a>
+
+      <nav className="ml-sm flex items-center gap-md text-sm text-ink">
+        <a className="hover:text-brand" href="#">Explore</a>
+        <a className="hover:text-brand" href="#">Learning paths</a>
+      </nav>
+
+      <div className="relative mx-sm flex h-12 flex-1 items-center rounded-round border border-ink bg-surface px-sm">
+        <Search className="size-5 text-ink-subdued" strokeWidth={2} />
+        <input
+          className="ml-xs h-full w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-subdued"
+          placeholder="Search for anything"
+        />
+      </div>
+
+      <nav className="flex items-center gap-md text-sm text-ink">
+        <a className="hover:text-brand" href="#">Teach</a>
+        <a className="hover:text-brand" href="#">My learning</a>
+      </nav>
+
+      <div className="relative ml-xs">
+        <img src={avatar} alt="Your profile" className="size-9 rounded-round object-cover" />
+        <span className="absolute -right-0.5 -top-0.5 size-3 rounded-round border-2 border-surface bg-brand" />
+      </div>
+    </header>
+  )
+}
+
+const CATEGORIES = [
+  'Development',
+  'Business',
+  'IT & software',
+  'Office productivity',
+  'Personal development',
+  'Design',
+  'Marketing',
+  'Health and fitness',
+]
+
+/** The secondary category nav strip shown on the marketplace home screens. */
+export function CategoryNav() {
+  return (
+    <nav className="flex shrink-0 items-center gap-lg overflow-x-auto border-b border-line-subdued bg-surface px-xl py-xs-mid text-sm text-ink">
+      {CATEGORIES.map((c) => (
+        <a key={c} href="#" className="whitespace-nowrap hover:text-brand">
+          {c}
+        </a>
+      ))}
+    </nav>
+  )
+}

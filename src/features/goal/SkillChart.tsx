@@ -79,7 +79,7 @@ export function SkillChart({ skills, mode, showAssess = false, onAssess }: Skill
           </div>
 
           {showAssess && (
-            <Button udStyle="secondary" size="small" onClick={() => onAssess?.(s.id)}>
+            <Button udStyle="secondary" size="xsmall" onClick={() => onAssess?.(s.id)}>
               Assess
             </Button>
           )}

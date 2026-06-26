@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PanelLeft, ArrowRight, Sparkles, TrendingUp } from 'lucide-react'
 import { cn } from '@/components/ui/utils'
-import { AltusMark } from './AltusMark'
+import altusLogo from '@/assets/altus-logo.png'
 import { TypingIndicator } from './TypingIndicator'
 import {
   SkillProficiencyForm,
@@ -51,7 +51,7 @@ export function AltusPanel(props: AltusPanelProps) {
         </button>
         <div className="flex flex-1 rounded-round bg-surface-midtone p-1">
           <ToggleTab active={view === 'altus'} onClick={() => setView('altus')}>
-            <AltusMark size={16} /> Altus
+            <img src={altusLogo} alt="" className="size-5 object-contain" /> Altus
           </ToggleTab>
           <ToggleTab active={view === 'your-week'} onClick={() => setView('your-week')}>
             <TrendingUp className="size-4" strokeWidth={2} /> Your week

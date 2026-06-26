@@ -1,59 +1,172 @@
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { StreakHome } from './StreakHome'
-import { SetupGoals } from './SetupGoals'
-import { GoalDetail } from './GoalDetail'
+import { useCallback, useRef, useState } from 'react'
+import { SetupScreen } from './SetupScreen'
+import { GoalDetailScreen } from './GoalDetailScreen'
+import type { ChatItem } from './AltusPanel'
+import type { ProficiencySelections } from './embeds'
+import { brain, type AltusAction, type AltusTurn } from './altusBrain'
+import {
+  POPULATED_SKILLS,
+  INITIAL_PATH,
+  SWAP_COURSE,
+  type SkillRow,
+  type PathCourse,
+} from './data'
 
 /**
  * Personal goal E2E prototype flow.
  *
- * A learner sets their own learning goal and lands on a personalized goal page.
- * Four screens, advanced by the real CTAs in each screen (no router):
- *   1. Streak home (entry)            — "View the plan" / start setting a goal
- *   2. Let's set up your goals        — submit the prompt input
- *   3. Goal detail (Altus active)     — skills, learning path, assistant panel
- *   4. Goal detail (assistant off)    — same page, AI Assistant disabled state
+ * SCREEN 1 (Setup) → learner types a goal and submits → SCREEN 2 (Goal Detail),
+ * a two-column page whose LEFT panel starts as a skeleton and the RIGHT Altus
+ * panel runs a scripted conversation. As the conversation advances, the brain
+ * returns AltusActions that this component applies to the left-panel state
+ * (populate skills, build path, swap a course, confirm the goal).
  *
- * A thin footer bar provides Back/Next affordances for prototype navigation
- * in addition to the in-screen CTAs.
+ * The conversation engine is the pluggable `brain` from `./altusBrain` — today
+ * scripted, later server/OpenAI-backed with no changes here.
  */
-const STEP_LABELS = ['Streak home', 'Set up goals', 'Goal detail', 'Assistant disabled']
+
+const SEED_USER_MESSAGE = 'I want to upskill in generative AI'
+const THINK_MS = 900
+
+let idSeq = 0
+const nextId = () => `m${++idSeq}`
 
 export default function PersonalGoalFlow() {
-  const [step, setStep] = useState(0)
-  const go = (n: number) => setStep(Math.max(0, Math.min(STEP_LABELS.length - 1, n)))
+  const [screen, setScreen] = useState<'setup' | 'detail'>('setup')
+
+  // ── Left-panel (page) state ──
+  const [populated, setPopulated] = useState(false)
+  const [skills, setSkills] = useState<SkillRow[]>([])
+  const [courses, setCourses] = useState<PathCourse[]>([])
+
+  // ── Conversation state ──
+  const [items, setItems] = useState<ChatItem[]>([])
+  const [thinking, setThinking] = useState(false)
+
+  // ── Embedded-card state ──
+  const [proficiency, setProficiency] = useState<ProficiencySelections>({})
+  const [proficiencyDone, setProficiencyDone] = useState(false)
+  const [reviewDone, setReviewDone] = useState(false)
+
+  // Guard so overlapping sends can't interleave turns.
+  const busy = useRef(false)
+
+  /** Apply a single AltusAction to the left-panel state. */
+  const applyAction = useCallback((action: AltusAction) => {
+    switch (action.type) {
+      case 'populateSkills':
+        setSkills(POPULATED_SKILLS)
+        break
+      case 'buildPath':
+        setCourses(INITIAL_PATH)
+        setPopulated(true)
+        break
+      case 'setGoalConfirmed':
+        setPopulated(true)
+        break
+      case 'swapCourse':
+        setCourses((prev) => {
+          const next = [...prev]
+          if (next[action.index] && action.courseId === SWAP_COURSE.id) {
+            next[action.index] = SWAP_COURSE
+          }
+          return next
+        })
+        break
+    }
+  }, [])
+
+  /** Render one assistant turn: copy + embedded component, applying its actions. */
+  const renderTurn = useCallback(
+    (turn: AltusTurn) => {
+      turn.actions?.forEach(applyAction)
+      if (turn.assistant || turn.component) {
+        setItems((prev) => [
+          ...prev,
+          { id: nextId(), role: 'assistant', text: turn.assistant, component: turn.component },
+        ])
+      }
+    },
+    [applyAction],
+  )
+
+  /**
+   * Advance the conversation: ask the brain for the next turns and play them
+   * with a short "thinking" pause before each. `userText` is the raw composer
+   * input (or a synthetic token for embedded-card actions).
+   */
+  const advance = useCallback(
+    async (userText: string) => {
+      if (busy.current) return
+      busy.current = true
+      try {
+        const turns = await brain.send(userText)
+        for (const turn of turns) {
+          setThinking(true)
+          await new Promise((r) => setTimeout(r, THINK_MS))
+          setThinking(false)
+          renderTurn(turn)
+        }
+      } finally {
+        busy.current = false
+      }
+    },
+    [renderTurn],
+  )
+
+  /** Composer submit — free typing. Pushes the user bubble, then advances. */
+  const onSend = useCallback(
+    (text: string) => {
+      setItems((prev) => [...prev, { id: nextId(), role: 'user', text }])
+      void advance(text)
+    },
+    [advance],
+  )
+
+  /** Setup screen submit → seed first user message and kick off the brain. */
+  const onSetupSubmit = useCallback(
+    (_goal: string) => {
+      void _goal // free-typed goal; the scripted brain ignores the exact text
+      setScreen('detail')
+      setItems([{ id: nextId(), role: 'user', text: SEED_USER_MESSAGE }])
+      void advance(SEED_USER_MESSAGE)
+    },
+    [advance],
+  )
+
+  // ── Embedded-card handlers (act as synthetic sends) ──
+  const onProficiencyChange = useCallback((skillId: string, level: number) => {
+    setProficiency((prev) => ({ ...prev, [skillId]: level }))
+  }, [])
+
+  const onProficiencySave = useCallback(() => {
+    setProficiencyDone(true)
+    void advance('save proficiency')
+  }, [advance])
+
+  const onConfirm = useCallback(() => {
+    setReviewDone(true)
+    void advance('confirm goal')
+  }, [advance])
+
+  if (screen === 'setup') {
+    return <SetupScreen onSubmit={onSetupSubmit} />
+  }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="flex-1">
-        {step === 0 && <StreakHome onViewPlan={() => go(1)} />}
-        {step === 1 && <SetupGoals onSubmit={() => go(2)} />}
-        {step === 2 && <GoalDetail panelDisabled={false} />}
-        {step === 3 && <GoalDetail panelDisabled />}
-      </div>
-
-      {/* Prototype navigation bar */}
-      <div className="sticky bottom-0 z-10 flex items-center justify-between gap-md border-t border-line-subdued bg-surface px-lg py-sm">
-        <button
-          onClick={() => go(step - 1)}
-          disabled={step === 0}
-          className="flex items-center gap-xs text-sm font-bold text-ink-subdued hover:text-ink disabled:opacity-30"
-        >
-          <ChevronLeft className="size-4" strokeWidth={2} />
-          Back
-        </button>
-        <span className="text-xs text-ink-subdued">
-          Step {step + 1} of {STEP_LABELS.length} · {STEP_LABELS[step]}
-        </span>
-        <button
-          onClick={() => go(step + 1)}
-          disabled={step === STEP_LABELS.length - 1}
-          className="flex items-center gap-xs text-sm font-bold text-brand hover:text-brand-strong disabled:opacity-30"
-        >
-          Next
-          <ChevronRight className="size-4" strokeWidth={2} />
-        </button>
-      </div>
-    </div>
+    <GoalDetailScreen
+      populated={populated}
+      skills={skills}
+      courses={courses}
+      items={items}
+      thinking={thinking}
+      onSend={onSend}
+      proficiency={proficiency}
+      proficiencyDone={proficiencyDone}
+      onProficiencyChange={onProficiencyChange}
+      onProficiencySave={onProficiencySave}
+      reviewDone={reviewDone}
+      onConfirm={onConfirm}
+    />
   )
 }

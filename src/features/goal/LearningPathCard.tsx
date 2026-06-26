@@ -48,6 +48,38 @@ function CourseRow({
   )
 }
 
+/** Circular progress ring (track + arc) showing completed/total courses. */
+function ProgressRing({ completed, total }: { completed: number; total: number }) {
+  const size = 56
+  const stroke = 3
+  const r = (size - stroke) / 2
+  const circ = 2 * Math.PI * r
+  const pct = total ? completed / total : 0
+  return (
+    <span className="relative flex size-14 shrink-0 items-center justify-center">
+      <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-gray-200)" strokeWidth={stroke} />
+        {pct > 0 && (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="var(--color-purple-400)"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={circ * (1 - pct)}
+          />
+        )}
+      </svg>
+      <span className="text-xs font-medium text-ink tabular-nums">
+        {completed}/{total}
+      </span>
+    </span>
+  )
+}
+
 function SkeletonRow() {
   return (
     <div className="flex gap-sm" aria-hidden>
@@ -75,11 +107,7 @@ export function LearningPathCard({ courses, skeleton, curated }: LearningPathCar
     <section className="flex flex-col gap-lg rounded-lg bg-surface p-lg shadow-[var(--box-shadow-100)]">
       <div className="flex items-start justify-between gap-sm">
         <div className="flex items-center gap-sm">
-          {!skeleton && (
-            <span className="flex size-14 shrink-0 items-center justify-center rounded-round border-2 border-line text-xs text-ink">
-              0/{total}
-            </span>
-          )}
+          {!skeleton && <ProgressRing completed={0} total={total} />}
           <div className="flex flex-col gap-xxs">
             <h2 className="text-lg font-medium leading-tight text-ink">Learning path</h2>
             {!skeleton && <p className="text-sm text-ink-subdued">{total} courses</p>}

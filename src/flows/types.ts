@@ -4,10 +4,15 @@ export type Persona = 'product-manager' | 'data-scientist'
 
 export type FlowStatus = 'ready' | 'planned'
 
+/** Which hub tab a flow belongs to. */
+export type HubTab = 'beta' | 'post-beta'
+
 /** A single end-to-end prototype flow (one scenario × one persona). */
 export interface Flow {
   /** URL slug, e.g. "fixed-lp-pm" */
   id: string
+  /** Hub tab grouping. */
+  tab: HubTab
   /** Scenario grouping key, e.g. "fixed-lp" */
   scenarioId: string
   /** Scenario label, e.g. "Fixed LP" */

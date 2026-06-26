@@ -14,7 +14,7 @@ function flow(
   persona: Flow['persona'],
   figmaNodes: string[],
 ): Flow {
-  return { id, scenarioId, scenario, scenarioBlurb, persona, status: 'ready', figmaNodes, component: GoalPage }
+  return { id, tab: 'post-beta', scenarioId, scenario, scenarioBlurb, persona, status: 'ready', figmaNodes, component: GoalPage }
 }
 
 export const flows: Flow[] = [

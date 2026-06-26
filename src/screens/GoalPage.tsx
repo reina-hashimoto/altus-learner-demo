@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { UBHeader } from '@/components/shell/UBHeader'
 import { LeftRail } from '@/components/shell/LeftRail'
 import { GoalHeader } from '@/features/goal/GoalHeader'
@@ -6,34 +7,36 @@ import { SkillsCard } from '@/features/goal/SkillsCard'
 import { LearningPathCard } from '@/features/goal/LearningPathCard'
 import { AltusPanel, type AltusMessage } from '@/features/goal/altus/AltusPanel'
 import type { ProficiencySelections } from '@/features/goal/SkillProficiencyForm'
-import { GOAL } from '@/data/goal'
+import { getFlow, defaultFlowId } from '@/flows/registry'
+import { getFlowConfig, type ChipDef } from '@/flows/config'
 
 type Stage = 'intro' | 'proficiency' | 'thinking' | 'done'
 
-const INTRO_MESSAGES: AltusMessage[] = [
-  {
-    id: 'intro-1',
-    role: 'assistant',
-    text: `Your organization has assigned you the goal “${GOAL.altusGoalName}” by ${GOAL.altusDueDate}. Let's identify your current skill proficiency and create a learning path to help you achieve it.`,
-  },
-  { id: 'intro-2', role: 'assistant', text: "What's your current role?" },
-]
-
 const PROFICIENCY_PROMPT =
   'Great, select the proficiency level that best matches your current skill level.'
-const DONE_MESSAGE =
-  "All set! Your learning path is ready below. Let's start building the skills needed to reach your goal."
 
 export default function GoalPage() {
+  const { flowId } = useParams()
+  const flow = getFlow(flowId) ?? getFlow(defaultFlowId)!
+  const config = getFlowConfig(flow.scenarioId, flow.persona)
+
+  const introMessages: AltusMessage[] = config.intro.map((text, i) => ({
+    id: `intro-${i}`,
+    role: 'assistant',
+    text,
+  }))
+
   const [stage, setStage] = useState<Stage>('intro')
-  const [messages, setMessages] = useState<AltusMessage[]>(INTRO_MESSAGES)
+  const [messages, setMessages] = useState<AltusMessage[]>(introMessages)
   const [proficiency, setProficiency] = useState<ProficiencySelections>({})
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
 
-  const chartMode = stage === 'done' ? 'selfReported' : 'estimated'
+  const done = stage === 'done'
+  const chartMode = done ? 'selfReported' : 'estimated'
+  const skillsSkeleton = !config.skillsKnown && !done
+  const pathSkeleton = config.pathMode === 'empty' && !done
 
-  /** Reveal the proficiency self-assessment, optionally recording the role first. */
   const startProficiency = (role?: string) => {
     if (stage !== 'intro') return
     setMessages((prev) => {
@@ -46,22 +49,26 @@ export default function GoalPage() {
   }
 
   const handleSend = (text: string) => {
-    if (stage === 'intro') {
-      startProficiency(text)
-    } else {
-      setMessages((prev) => [...prev, { id: nextId(), role: 'user', text }])
-    }
+    if (stage === 'intro') startProficiency(text)
+    else setMessages((prev) => [...prev, { id: nextId(), role: 'user', text }])
   }
 
-  const handleChip = (chip: 'assessment' | 'role') => {
-    if (chip === 'role') startProficiency(GOAL.role)
-    else startProficiency()
+  const handleChip = (chip: ChipDef['id']) => {
+    if (chip === 'role') startProficiency(config.role)
+    else if (chip === 'assessment') startProficiency()
+    else if (chip === 'study-time') {
+      setMessages((prev) => [
+        ...prev,
+        { id: nextId(), role: 'user', text: 'Change study time' },
+        { id: nextId(), role: 'assistant', text: 'Sure — how many hours per week can you commit?' },
+      ])
+    }
   }
 
   const handleProficiencySubmit = () => {
     setStage('thinking')
     window.setTimeout(() => {
-      setMessages((prev) => [...prev, { id: nextId(), role: 'assistant', text: DONE_MESSAGE }])
+      setMessages((prev) => [...prev, { id: nextId(), role: 'assistant', text: config.doneMessage }])
       setStage('done')
     }, 1800)
   }
@@ -72,25 +79,32 @@ export default function GoalPage() {
       <div className="flex flex-1 overflow-hidden">
         <LeftRail />
         <div className="grid flex-1 grid-cols-2 overflow-hidden">
-          {/* left column — goal + skills + learning path */}
           <div className="overflow-y-auto border-r border-line-subdued px-lg py-md">
             <div className="mx-auto flex max-w-[620px] flex-col gap-md">
-              <GoalHeader />
+              <GoalHeader title={config.goalTitle} />
               <SkillsCard
+                skills={config.skills}
+                role={config.role}
                 mode={chartMode}
+                skeleton={skillsSkeleton}
                 onAssess={() => startProficiency()}
                 onTakeAssessment={() => startProficiency()}
               />
-              <LearningPathCard />
+              <LearningPathCard
+                courses={config.courses}
+                skeleton={pathSkeleton}
+                curated={config.pathMode === 'fixed'}
+              />
             </div>
           </div>
 
-          {/* right column — Altus */}
           <AltusPanel
             messages={messages}
             thinking={stage === 'thinking'}
             showProficiencyForm={stage === 'proficiency'}
+            skills={config.skills}
             proficiency={proficiency}
+            chips={config.chips}
             onProficiencyChange={(skillId, levelIndex) =>
               setProficiency((p) => ({ ...p, [skillId]: levelIndex }))
             }

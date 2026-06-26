@@ -7,7 +7,7 @@ function FlowRoute() {
   const flow = getFlow(flowId)
   if (!flow?.component) return <Navigate to="/" replace />
   const Page = flow.component
-  return <Page />
+  return <Page key={flow.id} />
 }
 
 export default function App() {

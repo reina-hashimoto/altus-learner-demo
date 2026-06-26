@@ -7,6 +7,8 @@ import {
   SkillProficiencyForm,
   type ProficiencySelections,
 } from '../SkillProficiencyForm'
+import type { Skill } from '@/data/goal'
+import type { ChipDef } from '@/flows/config'
 
 export interface AltusMessage {
   id: string
@@ -20,11 +22,13 @@ interface AltusPanelProps {
   messages: AltusMessage[]
   thinking: boolean
   showProficiencyForm: boolean
+  skills: Skill[]
   proficiency: ProficiencySelections
+  chips: ChipDef[]
   onProficiencyChange: (skillId: string, levelIndex: number) => void
   onProficiencySubmit: () => void
   onSend: (text: string) => void
-  onChip: (chip: 'assessment' | 'role') => void
+  onChip: (chip: ChipDef['id']) => void
 }
 
 export function AltusPanel(props: AltusPanelProps) {
@@ -77,6 +81,7 @@ export function AltusPanel(props: AltusPanelProps) {
 
             {props.showProficiencyForm && (
               <SkillProficiencyForm
+                skills={props.skills}
                 values={props.proficiency}
                 onChange={props.onProficiencyChange}
                 onSubmit={props.onProficiencySubmit}
@@ -106,9 +111,12 @@ export function AltusPanel(props: AltusPanelProps) {
             <ArrowRight className="size-4" strokeWidth={2.25} />
           </button>
         </div>
-        <div className="flex gap-xs">
-          <Chip onClick={() => props.onChip('assessment')}>Take an assessment</Chip>
-          <Chip onClick={() => props.onChip('role')}>Update role</Chip>
+        <div className="flex flex-wrap gap-xs">
+          {props.chips.map((chip) => (
+            <Chip key={chip.id} onClick={() => props.onChip(chip.id)}>
+              {chip.label}
+            </Chip>
+          ))}
         </div>
       </div>
     </div>

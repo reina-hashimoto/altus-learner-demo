@@ -1,17 +1,18 @@
-import { SKILLS, PROFICIENCY_LEVELS } from '@/data/goal'
+import { PROFICIENCY_LEVELS, type Skill } from '@/data/goal'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/components/ui/utils'
 
 export type ProficiencySelections = Record<string, number>
 
 interface SkillProficiencyFormProps {
+  skills: Skill[]
   values: ProficiencySelections
   onChange: (skillId: string, levelIndex: number) => void
   onSubmit: () => void
 }
 
-export function SkillProficiencyForm({ values, onChange, onSubmit }: SkillProficiencyFormProps) {
-  const complete = SKILLS.every((s) => values[s.id] !== undefined)
+export function SkillProficiencyForm({ skills, values, onChange, onSubmit }: SkillProficiencyFormProps) {
+  const complete = skills.every((s) => values[s.id] !== undefined)
 
   return (
     <div className="rounded-lg border border-line bg-surface">
@@ -22,7 +23,7 @@ export function SkillProficiencyForm({ values, onChange, onSubmit }: SkillProfic
       <div className="border-t border-line-subdued" />
 
       <div className="flex flex-col gap-md p-md">
-        {SKILLS.map((skill, i) => (
+        {skills.map((skill, i) => (
           <div key={skill.id} className="flex flex-col gap-xs">
             <div className="flex items-center gap-xs">
               <span className="flex size-5 items-center justify-center rounded-round bg-surface-midtone text-xxs font-bold text-ink-subdued">

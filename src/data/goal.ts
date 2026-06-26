@@ -99,15 +99,11 @@ export const COURSES: Course[] = [
   },
 ]
 
-export const GOAL = {
+/** Goal meta shared across all scenarios (timeline + weekly commitment). */
+export const GOAL_META = {
   tag: 'Organization goal',
-  title: 'AI benchmark fluency',
   daysLeft: '72 more days',
   dueDate: 'By Aug 31, 2026',
   commitment: '1 hour',
   commitmentUnit: '/week',
-  role: 'Product Manager',
-  /** Date as Altus phrases it in conversation. */
-  altusDueDate: 'Sept 30, 2026',
-  altusGoalName: 'AI Benchmark Fluency',
 }

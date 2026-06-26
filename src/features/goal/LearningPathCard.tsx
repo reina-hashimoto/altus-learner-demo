@@ -5,12 +5,10 @@ function CourseRow({
   course,
   isFirst,
   isLast,
-  isCurrent,
 }: {
   course: Course
   isFirst: boolean
   isLast: boolean
-  isCurrent: boolean
 }) {
   return (
     <div className="flex gap-xs-mid">
@@ -22,11 +20,7 @@ function CourseRow({
         <span className={`w-px flex-1 ${isLast ? '' : 'bg-line'}`} />
       </div>
 
-      <div
-        className={`flex flex-1 gap-sm rounded-lg border p-sm ${
-          isCurrent ? 'border-2 border-[var(--color-purple-250)]' : 'border-line-subdued'
-        }`}
-      >
+      <div className="flex flex-1 gap-sm rounded-lg border border-line-subdued p-sm">
         <img src={course.image} alt="" className="size-12 shrink-0 rounded-md object-cover" />
         <div className="flex flex-1 flex-col gap-sm">
           <div className="flex flex-col gap-xxs">
@@ -104,7 +98,6 @@ export function LearningPathCard({ courses, skeleton, curated }: LearningPathCar
                 course={c}
                 isFirst={i === 0}
                 isLast={i === courses.length - 1}
-                isCurrent={i === 0}
               />
             ))}
       </div>

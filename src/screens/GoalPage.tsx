@@ -90,9 +90,10 @@ export default function GoalPage() {
       <UBHeader />
       <div className="flex flex-1 overflow-hidden">
         <LeftRail />
-        <div className="grid flex-1 grid-cols-2 overflow-hidden">
+        {/* Figma 7021:27603: content area 856px, Altus panel ~480px → ~64/36 split */}
+        <div className="grid flex-1 grid-cols-[856fr_480fr] overflow-hidden">
           <div className="overflow-y-auto bg-surface-pale px-lg py-md">
-            <div className="mx-auto flex max-w-[620px] flex-col gap-md">
+            <div className="mx-auto flex max-w-[860px] flex-col gap-md">
               <GoalHeader title={config.goalTitle} />
               <SkillsCard
                 skills={config.skills}

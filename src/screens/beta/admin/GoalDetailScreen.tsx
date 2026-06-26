@@ -3,25 +3,16 @@ import { Flag, Pencil } from 'lucide-react'
 import { LeftRail } from '@/components/shell/LeftRail'
 import { SkillsCard } from '@/features/goal/SkillsCard'
 import { LearningPathCard } from '@/features/goal/LearningPathCard'
-import { AltusPanel, type AltusMessage } from '@/features/goal/altus/AltusPanel'
 import type { ProficiencySelections } from '@/features/goal/SkillProficiencyForm'
 import type { ChipDef } from '@/flows/config'
-import type { Skill, Course } from '@/data/goal'
+import { PROFICIENCY_LEVELS, type Skill, type Course } from '@/data/goal'
 import { AdminHeader } from './AdminHeader'
+import { AdminAltusPanel, type AdminMessage, type GoalReview } from './AdminAltusPanel'
 import coursePrompt from '@/assets/course-prompt-engineering.png'
 import courseHallucination from '@/assets/course-hallucination.png'
 
-// ── Screen C content (from Figma "Skills to develop") ─────────────────────
+// ── Goal-detail content (from Figma "Skills to develop") ──────────────────
 const ADMIN_SKILLS: Skill[] = [
-  {
-    id: 'ai-design-thinking',
-    name: 'AI-powered Design Thinking',
-    description:
-      'Apply AI to explore problems, generate solutions, and iterate on design decisions faster.',
-    estimated: 40,
-    selfReported: 78,
-    target: 130,
-  },
   {
     id: 'prompt-to-ui',
     name: 'Prompt-to-UI Prototyping',
@@ -30,6 +21,15 @@ const ADMIN_SKILLS: Skill[] = [
     estimated: 40,
     selfReported: 60,
     target: 132,
+  },
+  {
+    id: 'ai-design-thinking',
+    name: 'AI-powered Design Thinking',
+    description:
+      'Apply AI to explore problems, generate solutions, and iterate on design decisions faster.',
+    estimated: 40,
+    selfReported: 78,
+    target: 130,
   },
   {
     id: 'ai-ml-foundations',
@@ -63,26 +63,37 @@ const ADMIN_COURSES: Course[] = [
   },
 ]
 
-const ADMIN_CHIPS: ChipDef[] = [
-  { id: 'assessment', label: 'Take an assessment' },
-  { id: 'role', label: 'Update role' },
-]
+const GOAL_REVIEW: GoalReview = {
+  role: 'Senior Product Designer',
+  targetDate: 'August 31, 2026',
+  weeklyTime: '2 hours',
+  skills: [
+    { name: 'AI-powered Design Thinking', level: 'Intermediate', source: 'Udemy Assessed' },
+    { name: 'Prompt-to-UI Prototyping', level: 'Established', source: 'Self-reported' },
+    { name: 'AI/ML Foundations', level: 'Foundational', source: 'Estimated' },
+  ],
+}
 
-const INTRO_MESSAGES: AltusMessage[] = [
-  {
-    id: 'a-intro-1',
-    role: 'assistant',
-    text: "Here's your goal to upskill in generative AI. I've identified the key skills to develop and built a learning path to help you get there.",
-  },
-  {
-    id: 'a-intro-2',
-    role: 'assistant',
-    text: 'Take an assessment to validate your current proficiency, or ask me anything about your plan.',
-  },
-]
+const ROLE_CHIP: ChipDef = { id: 'role', label: 'Update role' }
+const ASSESS_CHIP: ChipDef = { id: 'assessment', label: 'Take an assessment' }
+const STUDY_CHIP: ChipDef = { id: 'study-time', label: 'Change study time' }
+// During the confirm stage a single "Confirm goal" chip drives the flow; it is
+// routed by stage (not id) in handleChip.
+const CONFIRM_CHIP: ChipDef = { id: 'study-time', label: 'Confirm goal' }
 
-/** Local goal header for screen C — "Personal goal", role label + Edit link. */
-function AdminGoalHeader() {
+/**
+ * Stage machine for the Altus conversation (verbatim Figma copy):
+ *  loading      → just submitted; everything skeleton, empty panel
+ *  ask-role     → "...What is your role?" (user already stated the goal)
+ *  proficiency  → self-report form ("There are 2 skills where we need your input…")
+ *  confirm      → "Review your goal" card ("Does this goal look good to you?…")
+ *  generating   → "Goal confirmed — generating your learning path…"
+ *  done         → skills + path populated; "Here is your personalized learning path 🎉"
+ */
+type Stage = 'loading' | 'ask-role' | 'proficiency' | 'confirm' | 'generating' | 'done'
+
+/** Local goal header for goal detail — "Personal goal", title + weekly time + Edit. */
+function AdminGoalHeader({ ready }: { ready: boolean }) {
   return (
     <div className="flex flex-col gap-xs">
       <div className="flex items-start justify-between gap-md">
@@ -90,13 +101,22 @@ function AdminGoalHeader() {
           <Flag className="size-3.5" strokeWidth={2} />
           Personal goal
         </span>
-        <button className="flex shrink-0 items-center gap-xxs text-sm font-bold text-brand hover:text-brand-strong">
-          <Pencil className="size-4" strokeWidth={2} />
-          Edit
-        </button>
+        {ready && (
+          <button className="flex shrink-0 items-center gap-xxs text-sm font-bold text-brand hover:text-brand-strong">
+            <Pencil className="size-4" strokeWidth={2} />
+            Edit
+          </button>
+        )}
       </div>
 
-      <h1 className="text-xxl font-medium leading-tight text-ink">Upskilling in generative AI</h1>
+      {ready ? (
+        <h1 className="text-xxl font-medium leading-tight text-ink">Upskilling in generative AI</h1>
+      ) : (
+        <div className="flex flex-col gap-xs py-xxs" aria-hidden>
+          <div className="skeleton h-6 w-[60%] rounded-round" />
+          <div className="skeleton h-3 w-[24%] rounded-round" />
+        </div>
+      )}
 
       <div className="mt-xxs flex items-center gap-md text-sm text-ink-subdued">
         <span className="flex items-center gap-xs">
@@ -109,54 +129,125 @@ function AdminGoalHeader() {
 }
 
 /**
- * Screen C — "Skills to develop" (goal detail). Thin icon rail + two-column
- * layout (skills/learning-path main column + Altus chat panel). Reuses the
- * shared SkillsCard / LearningPathCard / AltusPanel with admin-specific data.
+ * Screen C — "Skills to develop" (goal detail), node 1046:45588 + sub-states.
+ * Thin icon rail + two-column layout (skills / learning-path main column +
+ * Altus chat panel). The Altus panel advances a conversation state machine:
+ * ask role → self-report proficiency → confirm goal → personalized path.
  */
 export function GoalDetailScreen() {
-  const [messages, setMessages] = useState<AltusMessage[]>(INTRO_MESSAGES)
-  const [proficiency, setProficiency] = useState<ProficiencySelections>({})
-  const [showForm, setShowForm] = useState(false)
+  // Skip straight past the brief "loading" stage into the first question.
+  const [stage, setStage] = useState<Stage>('ask-role')
+  const [messages, setMessages] = useState<AdminMessage[]>([
+    { id: 'u-goal', role: 'user', text: 'I want to upskill in generative AI' },
+    {
+      id: 'a-role',
+      role: 'assistant',
+      text: "Let's make sure the plan fits your role and current proficiency. What is your role?",
+    },
+  ])
+  // Pre-seed the skill Altus already assessed (AI-powered Design Thinking =
+  // Intermediate); the learner self-reports the other two.
+  const [proficiency, setProficiency] = useState<ProficiencySelections>({
+    'ai-design-thinking': PROFICIENCY_LEVELS.indexOf('Intermediate'),
+  })
   const [thinking, setThinking] = useState(false)
   const idRef = useRef(0)
   const nextId = () => `am${++idRef.current}`
 
-  const beginAssessment = () => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: nextId(),
+  const ready = stage === 'done'
+  const showForm = stage === 'proficiency'
+  const review = stage === 'confirm' || stage === 'generating' ? GOAL_REVIEW : null
+
+  const chips: ChipDef[] =
+    stage === 'done'
+      ? [ASSESS_CHIP, ROLE_CHIP, STUDY_CHIP]
+      : stage === 'confirm'
+        ? [CONFIRM_CHIP, ROLE_CHIP, STUDY_CHIP]
+        : stage === 'proficiency' || stage === 'generating'
+          ? []
+          : [ROLE_CHIP]
+
+  const push = (m: Omit<AdminMessage, 'id'>) => setMessages((prev) => [...prev, { id: nextId(), ...m }])
+
+  /** ask-role → user answers role → proficiency step. */
+  const advanceFromRole = (roleText: string) => {
+    push({ role: 'user', text: roleText })
+    setThinking(true)
+    window.setTimeout(() => {
+      setThinking(false)
+      push({
         role: 'assistant',
-        text: 'Great — select the proficiency level that best matches your current skill level.',
-      },
-    ])
-    setShowForm(true)
+        text: 'There are 2 skills where we need your input to determine your current proficiency.',
+        detail:
+          "Please self-report your level for each skill. If you're unsure, check the level definitions — or skip for now.",
+      })
+      setStage('proficiency')
+    }, 1200)
+  }
+
+  const openProficiency = () => {
+    push({
+      role: 'assistant',
+      text: 'There are 2 skills where we need your input to determine your current proficiency.',
+      detail:
+        "Please self-report your level for each skill. If you're unsure, check the level definitions — or skip for now.",
+    })
+    setStage('proficiency')
   }
 
   const handleSend = (text: string) => {
-    setMessages((prev) => [...prev, { id: nextId(), role: 'user', text }])
+    if (stage === 'ask-role') {
+      advanceFromRole(text)
+      return
+    }
+    if (stage === 'confirm') {
+      push({ role: 'user', text })
+      confirmGoal()
+      return
+    }
+    push({ role: 'user', text })
   }
 
   const handleChip = (chip: ChipDef['id']) => {
-    if (chip === 'assessment' || chip === 'role') beginAssessment()
-    else handleSend('Change study time')
+    if (stage === 'ask-role') {
+      advanceFromRole('Senior Product Designer')
+      return
+    }
+    if (stage === 'confirm') {
+      // The "Confirm goal" chip (study-time id) confirms; others just echo.
+      if (chip === 'study-time') confirmGoal()
+      else push({ role: 'user', text: chip === 'role' ? 'Update role' : 'Change study time' })
+      return
+    }
+    if (chip === 'assessment') openProficiency()
+    else push({ role: 'user', text: chip === 'role' ? 'Update role' : 'Change study time' })
   }
 
+  /** proficiency form submitted → review/confirm step. */
   const handleProficiencySubmit = () => {
-    setShowForm(false)
+    push({ role: 'user', text: 'Yes makes sense' })
     setThinking(true)
     window.setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { id: nextId(), role: 'assistant', text: 'Skill proficiency updated', pill: true },
-        {
-          id: nextId(),
-          role: 'assistant',
-          text: "Your learning path is ready. Let's start building the skills needed to achieve your goal.",
-        },
-      ])
       setThinking(false)
-    }, 1600)
+      push({
+        role: 'assistant',
+        text: 'Does this goal look good to you? Confirm to create your learning path, or keep refining it if needed.',
+      })
+      setStage('confirm')
+    }, 1200)
+  }
+
+  /** confirm → generating → done (path appears). */
+  const confirmGoal = () => {
+    push({ role: 'assistant', text: 'Goal confirmed — generating your learning path…', spinnerPill: true })
+    setStage('generating')
+    window.setTimeout(() => {
+      push({
+        role: 'assistant',
+        text: 'Here is your personalized learning path 🎉',
+      })
+      setStage('done')
+    }, 1800)
   }
 
   return (
@@ -164,30 +255,32 @@ export function GoalDetailScreen() {
       <AdminHeader />
       <div className="flex flex-1 overflow-hidden">
         <LeftRail />
-        {/* content area / Altus panel split (matches GoalPage) */}
-        <div className="grid flex-1 grid-cols-[856fr_480fr] overflow-hidden">
+        {/* main content + Altus panel split (matches GoalPage 856 / 440) */}
+        <div className="grid flex-1 grid-cols-[856fr_440fr] overflow-hidden">
           <div className="overflow-y-auto bg-surface-pale px-lg py-md">
-            <div className="mx-auto flex max-w-[860px] flex-col gap-md">
-              <AdminGoalHeader />
+            <div className="mx-auto flex max-w-[856px] flex-col gap-md">
+              <AdminGoalHeader ready={ready} />
               <SkillsCard
                 skills={ADMIN_SKILLS}
                 role="Sr. Product Designer"
                 mode="selfReported"
-                showRole
-                onAssess={beginAssessment}
-                onTakeAssessment={beginAssessment}
+                skeleton={!ready}
+                showRole={ready}
+                onAssess={() => handleChip('assessment')}
+                onTakeAssessment={() => handleChip('assessment')}
               />
-              <LearningPathCard courses={ADMIN_COURSES} />
+              <LearningPathCard courses={ADMIN_COURSES} skeleton={!ready} />
             </div>
           </div>
 
-          <AltusPanel
+          <AdminAltusPanel
             messages={messages}
             thinking={thinking}
             showProficiencyForm={showForm}
+            review={review}
             skills={ADMIN_SKILLS}
             proficiency={proficiency}
-            chips={ADMIN_CHIPS}
+            chips={chips}
             onProficiencyChange={(skillId, levelIndex) =>
               setProficiency((p) => ({ ...p, [skillId]: levelIndex }))
             }

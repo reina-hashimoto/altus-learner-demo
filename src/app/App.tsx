@@ -11,9 +11,13 @@ function FlowRoute() {
   return <Page key={flow.id} />
 }
 
+// When hosted under a sub-path (GitHub Pages project site), Vite sets BASE_URL to
+// e.g. "/altus-learner-demo/". Strip the trailing slash for the router basename.
+const BASENAME = import.meta.env.BASE_URL.replace(/\/$/, '')
+
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={BASENAME}>
       <Routes>
         <Route path="/" element={<FlowIndex />} />
         <Route path="/learning-goals" element={<LearningGoalsPage />} />

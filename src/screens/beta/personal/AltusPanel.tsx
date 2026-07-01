@@ -5,7 +5,8 @@
  * `brain.send(text)` via the `onSend` prop.
  */
 import { useRef, useEffect } from 'react'
-import { PanelLeft, ArrowUp, TrendingUp } from 'lucide-react'
+import { ArrowUp, TrendingUp } from 'lucide-react'
+import { UdemyIcon } from '@/components/icons/UdemyIcon'
 import { cn } from '@/components/ui/utils'
 import altusLogo from '@/assets/altus-logo.png'
 import {
@@ -124,7 +125,7 @@ export function AltusPanel(props: AltusPanelProps) {
       {/* toggle bar */}
       <div className="flex items-center gap-md p-md">
         <button aria-label="Collapse panel" className="text-ink-subdued hover:text-ink">
-          <PanelLeft className="size-5" strokeWidth={1.75} />
+          <UdemyIcon name="shrink-panel" size={20} />
         </button>
         {/* The toggle is shown but the conversation always lives in the Altus tab
             for this prototype; "Your week" is intentionally a no-op placeholder. */}

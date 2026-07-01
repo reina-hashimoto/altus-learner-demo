@@ -9,16 +9,17 @@ interface SkillProficiencyFormProps {
   values: ProficiencySelections
   onChange: (skillId: string, levelIndex: number) => void
   onSubmit: () => void
+  /** Open the "Level definitions" info modal. */
+  onOpenLevelDefs?: () => void
 }
 
-export function SkillProficiencyForm({ skills, values, onChange, onSubmit }: SkillProficiencyFormProps) {
-  const complete = skills.every((s) => values[s.id] !== undefined)
+export function SkillProficiencyForm({ skills, values, onChange, onSubmit, onOpenLevelDefs }: SkillProficiencyFormProps) {
 
   return (
     <div className="rounded-lg border border-line bg-surface">
       <div className="flex items-center justify-between p-md">
         <h3 className="text-md font-bold text-ink">Skill proficiency</h3>
-        <button className="text-sm font-bold text-link hover:underline">Level definitions</button>
+        <button onClick={onOpenLevelDefs} className="text-sm font-bold text-link hover:underline">Level definitions</button>
       </div>
       <div className="border-t border-line-subdued" />
 
@@ -56,7 +57,7 @@ export function SkillProficiencyForm({ skills, values, onChange, onSubmit }: Ski
         ))}
 
         <div className="flex justify-end">
-          <Button udStyle="secondary" disabled={!complete} onClick={onSubmit}>
+          <Button udStyle="secondary" onClick={onSubmit}>
             Save and continue
           </Button>
         </div>

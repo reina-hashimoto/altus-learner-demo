@@ -73,8 +73,10 @@
   --color-chart-5: var(--chart-5);
 }
 
-* {
-  border-color: var(--border);
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 body {
@@ -103,6 +105,11 @@ body {
   100% { transform: translateX(100%); }
 }
 
+/* Static skeleton — same fill as .skeleton but no shimmer animation. */
+.skeleton-static {
+  background: var(--color-gray-150);
+}
+
 /* Shimmer skeleton block — base fill + sweeping highlight. */
 .skeleton {
   position: relative;
@@ -121,4 +128,70 @@ body {
     transparent
   );
   animation: altusShimmer 1.6s ease-in-out infinite;
+}
+
+/* ---- Course card "optimizing" glow — spinning gradient border ---- */
+@property --glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes glowSpin {
+  to { --glow-angle: 360deg; }
+}
+/* Thin ring drawn just outside the card edge; mask keeps only the border ring
+   so it never covers card content. Rotating the conic angle spins the glow. */
+.course-glow-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 14px;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--glow-angle),
+    transparent 0deg,
+    var(--color-purple-400) 70deg,
+    var(--color-brand) 130deg,
+    transparent 220deg,
+    transparent 360deg
+  );
+  animation: glowSpin 1.3s linear infinite;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+/* ---- Skill verified celebration — a small, tasteful burst near the bar ---- */
+@keyframes celebrateRing {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.65; }
+  100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
+}
+.celebrate-ring {
+  animation: celebrateRing 0.9s ease-out forwards;
+}
+@keyframes celebrateSpark {
+  0% { transform: rotate(var(--a)) translateX(0) scale(0.3); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: rotate(var(--a)) translateX(var(--d, 34px)) scale(1); opacity: 0; }
+}
+.celebrate-spark {
+  animation: celebrateSpark 1s ease-out forwards;
+  transform-origin: center;
+}
+
+/* Soft outer bloom behind the ring. */
+.course-glow-ring::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 16px;
+  background: conic-gradient(
+    from var(--glow-angle),
+    transparent 0deg,
+    var(--color-purple-300) 90deg,
+    var(--color-brand) 150deg,
+    transparent 240deg
+  );
+  filter: blur(7px);
+  opacity: 0.45;
+  animation: glowSpin 1.3s linear infinite;
 }

@@ -28,6 +28,10 @@ import {
 
 const pct = (v: number) => `${(v / SKILL_SCALE_MAX) * 100}%`
 
+// Snap estimated/self-reported values to the centre of their proficiency band.
+// Udemy Verified scores use the exact value and bypass this.
+const snapToBandCenter = (v: number) => Math.min(Math.floor(v / 50), 3) * 50 + 25
+
 // ── Goal header ──────────────────────────────────────────────────────────────
 
 function GoalChip() {
@@ -107,7 +111,7 @@ const LEGEND = [
 
 function SkillsCardSkeleton() {
   return (
-    <section className="rounded-lg bg-surface p-lg shadow-[var(--box-shadow-100)]">
+    <section className="rounded-lg bg-surface p-lg">
       <div className="mb-md flex items-center gap-xs">
         <h2 className="text-lg font-medium text-ink">Skills to develop</h2>
         <HelpCircle className="size-4 text-ink-subdued" strokeWidth={1.75} />
@@ -129,7 +133,7 @@ function SkillsCardSkeleton() {
 
 function SkillsCard({ skills }: { skills: SkillRow[] }) {
   return (
-    <section className="rounded-lg bg-surface p-lg shadow-[var(--box-shadow-100)]">
+    <section className="rounded-lg bg-surface p-lg">
       <div className="mb-md flex items-center justify-between">
         <h2 className="flex items-center gap-xs text-lg font-medium text-ink">
           Skills to develop
@@ -157,39 +161,55 @@ function SkillsCard({ skills }: { skills: SkillRow[] }) {
           <div />
         </div>
 
-        {/* rows */}
-        {skills.map((s) => (
-          <div key={s.id} className="grid grid-cols-[180px_1fr_104px] items-center gap-sm">
-            <div className="text-right text-xs font-bold leading-tight text-ink">{s.name}</div>
-            <div className="relative h-9">
-              {SKILL_TICKS.map((t) => (
-                <span key={t} className="absolute top-0 bottom-0 w-px bg-line-subdued" style={{ left: pct(t) }} />
-              ))}
-              {/* current proficiency bar, coloured by source */}
-              <div
-                className="absolute top-1/2 left-0 h-2.5 -translate-y-1/2 rounded-sm"
-                style={{ width: pct(s.current), background: SOURCE_COLOR[s.source] }}
-              />
-              {/* target proficiency dot */}
-              <span
-                className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-round bg-brand"
-                style={{ left: pct(s.target) }}
-              />
-            </div>
-            <div className="flex justify-end">
-              {s.source === 'Udemy Verified' ? (
-                <button className="flex items-center gap-xs text-xs font-bold text-link hover:underline">
-                  Retake
-                  <RotateCw className="size-3.5" strokeWidth={2} />
-                </button>
-              ) : (
-                <Button udStyle="secondary" size="xsmall">
-                  Assess
-                </Button>
-              )}
-            </div>
+        {/* chart body — columns share one relative container so gridlines are continuous */}
+        <div className="grid grid-cols-[180px_1fr_104px] items-start gap-sm">
+          {/* Column 1: skill names */}
+          <div className="flex flex-col gap-xs-mid">
+            {skills.map((s) => (
+              <div key={s.id} className="flex h-9 items-center justify-end text-right text-xs font-bold leading-tight text-ink">
+                {s.name}
+              </div>
+            ))}
           </div>
-        ))}
+
+          {/* Column 2: single container → gridlines span all rows */}
+          <div className="relative flex flex-col gap-xs-mid">
+            {SKILL_TICKS.map((t) => (
+              <span key={t} className="pointer-events-none absolute top-0 bottom-0 w-px bg-line-subdued" style={{ left: pct(t) }} />
+            ))}
+            {skills.map((s) => (
+              <div key={s.id} className="relative h-9">
+                <div
+                  className="absolute top-1/2 left-0 h-2.5 -translate-y-1/2 rounded-sm"
+                  style={{
+                    width: s.source === 'Udemy Verified' ? pct(s.current) : pct(snapToBandCenter(s.current)),
+                    background: SOURCE_COLOR[s.source],
+                  }}
+                />
+                <span
+                  className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-round bg-brand"
+                  style={{ left: pct(snapToBandCenter(s.target)) }}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Column 3: CTAs */}
+          <div className="flex flex-col gap-xs-mid">
+            {skills.map((s) => (
+              <div key={s.id} className="flex h-9 items-center justify-end">
+                {s.source === 'Udemy Verified' ? (
+                  <button className="flex items-center gap-xs text-xs font-bold text-link hover:underline">
+                    Retake
+                    <RotateCw className="size-3.5" strokeWidth={2} />
+                  </button>
+                ) : (
+                  <Button udStyle="secondary" size="xsmall">Assess</Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* legend */}
         <div className="grid grid-cols-[180px_1fr_104px] gap-sm">
@@ -261,7 +281,7 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
 
 function LearningPathSkeleton() {
   return (
-    <section className="flex flex-col gap-lg rounded-lg bg-surface p-lg shadow-[var(--box-shadow-100)]">
+    <section className="flex flex-col gap-lg rounded-lg bg-surface p-lg ">
       <div className="flex items-center gap-sm">
         <span className="size-14 shrink-0 animate-pulse rounded-round bg-surface-midtone" />
         <div className="flex flex-col gap-xxs">
@@ -287,7 +307,7 @@ function LearningPathSkeleton() {
 function LearningPathCard({ courses }: { courses: PathCourse[] }) {
   const completed = courses.filter((c) => c.progress === 100).length
   return (
-    <section className="flex flex-col gap-lg rounded-lg bg-surface p-lg shadow-[var(--box-shadow-100)]">
+    <section className="flex flex-col gap-lg rounded-lg bg-surface p-lg ">
       <div className="flex items-center gap-sm">
         <ProgressRing completed={completed} total={courses.length} />
         <div className="flex flex-col gap-xxs">

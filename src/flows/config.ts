@@ -1,10 +1,11 @@
 import {
   SKILLS_AI,
   SKILLS_CUSTOM_PM,
+  SKILLS_CUSTOM_DS,
   COURSES_AI,
   COURSES_OPEN_PM,
   COURSES_CUSTOM_PM,
-  FLEX_TAILORED_FIRST,
+  COURSES_CUSTOM_DS,
   type Skill,
   type Course,
 } from '@/data/goal'
@@ -33,8 +34,15 @@ export interface FlowConfig {
   pathMode: 'fixed' | 'suggested' | 'empty'
   skills: Skill[]
   courses: Course[]
-  /** Flex: shorten the first course after self-assessment. */
-  tailorFirstCourse?: { lectures: number; duration: string }
+  /** Flex: after self-assessment, re-optimize each course's lecture count by
+   *  whether the learner's skill rose (fewer) or fell (more) vs the estimate. */
+  optimizeBySkill?: boolean
+  /** "From CPO, John D." label shown in the goal header for org-assigned custom goals. */
+  fromLabel?: string
+  /** true → skeleton placeholders have no shimmer animation (custom scenario initial state). */
+  staticPlaceholder?: boolean
+  /** true → show a "Review your goal" confirmation card before generating the path. */
+  showGoalConfirmation?: boolean
 }
 
 const ROLE_BY_PERSONA: Record<Persona, string> = {
@@ -69,14 +77,15 @@ const SCENARIOS: Record<ScenarioId, Omit<FlowConfig, 'role'>> = {
     chips: [ASSESS_CHIP, ROLE_CHIP],
     skillsKnown: true,
     pathMode: 'fixed',
+    fromLabel: 'From CPO, John D.',
     skills: SKILLS_AI,
     courses: COURSES_AI,
   },
   flex: {
-    goalTitle: 'Upskilling in AI',
-    altusGoalName: 'AI Benchmark Fluency',
+    goalTitle: 'Upskilling in Generative AI',
+    altusGoalName: 'Upskilling in Generative AI',
     altusDueDate: 'Sept 30, 2026',
-    intro: [`Your organization has assigned you the goal “AI Benchmark Fluency” by Sept 30, 2026. Let's identify your current skill proficiency and create a learning path to help you achieve it.`, ROLE_Q],
+    intro: [`VP of Product, Marcus G. has assigned you the goal “Upskilling in Generative AI” by Sept 30, 2026. Let's identify your current skill proficiency and create a learning path to help you achieve it.`, ROLE_Q],
     proficiencyPrompt: PROMPT_DEFAULT,
     doneStyle: 'simple',
     doneMessage: DONE_SIMPLE,
@@ -84,9 +93,12 @@ const SCENARIOS: Record<ScenarioId, Omit<FlowConfig, 'role'>> = {
     chips: [ASSESS_CHIP, ROLE_CHIP],
     skillsKnown: true,
     pathMode: 'suggested',
+    fromLabel: 'From VP of Product, Marcus G.',
     skills: SKILLS_AI,
     courses: COURSES_AI,
-    tailorFirstCourse: FLEX_TAILORED_FIRST,
+    // Flex-specific: after self-assessment, keep all courses but re-optimize each
+    // course's lecture count by whether the learner's skill rose or fell.
+    optimizeBySkill: true,
   },
   open: {
     goalTitle: 'Upskilling in AI',
@@ -100,21 +112,25 @@ const SCENARIOS: Record<ScenarioId, Omit<FlowConfig, 'role'>> = {
     chips: [ASSESS_CHIP, ROLE_CHIP, STUDY_CHIP],
     skillsKnown: true,
     pathMode: 'empty',
+    fromLabel: 'From CPO, John D.',
     skills: SKILLS_AI,
     courses: COURSES_OPEN_PM,
   },
   custom: {
-    goalTitle: 'Upskilling in AI',
-    altusGoalName: 'Upskilling in AI',
-    altusDueDate: 'Aug 30, 2026',
-    intro: [`Your organization has assigned you the goal “Upskilling in AI” by Aug 30, 2026. Let's identify the key skills needed for this goal and create a personalized learning path to help you achieve it.`, 'What is your current role?'],
+    goalTitle: 'Upskilling in Generative AI',
+    altusGoalName: 'Upskilling in Generative AI',
+    altusDueDate: 'Aug 31, 2026',
+    intro: [`Your organization has assigned you the goal “Upskilling in Generative AI” by Aug 31, 2026. Let's identify the key skills needed for this goal and create a personalized learning path to help you achieve it.`, 'What is your current role?'],
     proficiencyPrompt: PROMPT_CUSTOM,
     doneStyle: 'personalized',
     doneMessage: DONE_PERSONALIZED,
     doneOptions: DONE_OPTIONS,
-    chips: [ASSESS_CHIP, ROLE_CHIP, STUDY_CHIP],
+    chips: [],
     skillsKnown: false,
     pathMode: 'empty',
+    fromLabel: 'From CPO, John D.',
+    staticPlaceholder: true,
+    showGoalConfirmation: true,
     skills: SKILLS_CUSTOM_PM,
     courses: COURSES_CUSTOM_PM,
   },
@@ -122,5 +138,10 @@ const SCENARIOS: Record<ScenarioId, Omit<FlowConfig, 'role'>> = {
 
 export function getFlowConfig(scenarioId: string, persona: Persona): FlowConfig {
   const base = SCENARIOS[scenarioId as ScenarioId] ?? SCENARIOS.fixed
-  return { ...base, role: ROLE_BY_PERSONA[persona] }
+  const config: FlowConfig = { ...base, role: ROLE_BY_PERSONA[persona] }
+  if (scenarioId === 'custom' && persona === 'data-scientist') {
+    config.skills = SKILLS_CUSTOM_DS
+    config.courses = COURSES_CUSTOM_DS
+  }
+  return config
 }

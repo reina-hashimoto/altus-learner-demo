@@ -26,6 +26,14 @@ export interface Course {
   skillTag: string
   progress: number
   image: string
+  /** Content type — drives the meta line. Defaults to a video 'course'. */
+  kind?: 'course' | 'roleplay' | 'lab' | 'assessment'
+  /** Full meta line for non-course items, e.g. "Role Play • Gen AI • 1hr - 2hr". */
+  metaText?: string
+  /** Flex: lecture/duration when the learner's skill rose above the estimate. */
+  optimized?: { lectures: number; duration: string }
+  /** Flex: lecture/duration when the learner's skill fell below the estimate. */
+  expanded?: { lectures: number; duration: string }
 }
 
 const THUMBS = [coursePrompt, courseHallucination, courseResponsible]
@@ -49,14 +57,19 @@ function courses(defs: Omit<Course, 'image' | 'progress'>[]): Course[] {
 }
 
 // ── Fixed / Flex: org-curated generic AI path ─────────────────────────────
+// optimized = fewer lectures when the skill rose above the estimate (already
+// mastered content trimmed); expanded = more when the skill fell below it.
 export const COURSES_AI = courses([
-  { id: 'prompt-eng-101', title: 'Prompt Engineering 101 - The Complete Beginner’s Guide', lectures: 14, duration: '1h 51m', skillTag: 'Prompting AI Effectively' },
-  { id: 'hallucination-mgmt', title: 'Hallucination Management for Generative AI', lectures: 23, duration: '2h 58m', skillTag: 'Evaluating AI Outputs' },
-  { id: 'responsible-ai', title: 'Responsible AI: Principles, Risk & Governance', lectures: 18, duration: '2h 12m', skillTag: 'Responsible AI Usage' },
+  { id: 'prompt-eng-101', title: 'Prompt Engineering 101 - The Complete Beginner’s Guide', lectures: 14, duration: '1h 51m', skillTag: 'Prompting AI Effectively', optimized: { lectures: 9, duration: '53m' }, expanded: { lectures: 18, duration: '2h 30m' } },
+  { id: 'hallucination-mgmt', title: 'Hallucination Management for Generative AI', lectures: 23, duration: '2h 58m', skillTag: 'Evaluating AI Outputs', optimized: { lectures: 16, duration: '2h 05m' }, expanded: { lectures: 28, duration: '3h 40m' } },
+  { id: 'responsible-ai', title: 'Responsible AI: Principles, Risk & Governance', lectures: 18, duration: '2h 12m', skillTag: 'Responsible AI Usage', optimized: { lectures: 12, duration: '1h 25m' }, expanded: { lectures: 23, duration: '2h 50m' } },
 ])
 
-/** Flex tailors the first course shorter after self-assessment. */
-export const FLEX_TAILORED_FIRST = { lectures: 9, duration: '53m' }
+// ── Flex extras: Role Play + Hands-on Lab, added only on learner request ────
+export const COURSES_FLEX_EXTRAS: Course[] = courses([
+  { id: 'roleplay-autogen', title: 'Deploy and Scale AI Agents with Microsoft AutoGen', lectures: 0, duration: '', skillTag: 'Evaluating AI Outputs', kind: 'roleplay', metaText: 'Role Play • Gen AI • 1hr - 2hr' },
+  { id: 'lab-rag', title: 'Build and Ship a RAG Pipeline Hands-On', lectures: 0, duration: '', skillTag: 'Prompting AI Effectively', kind: 'lab', metaText: 'Labs • Gen AI • 1hr - 2hr' },
+])
 
 // ── Open: Altus-built PM path (generic skills) ────────────────────────────
 export const COURSES_OPEN_PM = courses([
@@ -70,6 +83,21 @@ export const COURSES_CUSTOM_PM = courses([
   { id: 'build-ai-native', title: 'Building AI-Native Products: From Idea to Launch', lectures: 24, duration: '1h 37m', skillTag: 'AI-Native Product Development' },
   { id: 'rapid-proto', title: 'Rapid Product Prototyping with AI and Vibe Coding', lectures: 18, duration: '2h 03m', skillTag: 'AI-Powered Prototyping' },
   { id: 'kpi-dashboards', title: 'Creating Product KPI Dashboards with AI', lectures: 19, duration: '1h 58m', skillTag: 'AI-Assisted Product Analytics' },
+])
+
+// ── Custom-scenario DS skills (Altus-defined) ─────────────────────────────
+export const SKILLS_CUSTOM_DS: Skill[] = [
+  { id: 'ai-model-dev', name: 'AI Model Development', description: 'Build, fine-tune, and deploy machine learning models that leverage generative AI capabilities.', estimated: 75, selfReported: 78, target: 175 },
+  { id: 'ai-eval-bench', name: 'AI Evaluation and Benchmarking', description: 'Design and run evaluation pipelines to measure AI model quality, reliability, and alignment.', estimated: 75, selfReported: 45, target: 175 },
+  { id: 'ai-ops-monitor', name: 'AI Operations and Monitoring', description: 'Operate AI models in production, including monitoring, alerting, and continuous improvement.', estimated: 25, selfReported: 78, target: 125 },
+]
+
+// ── Custom: Altus-built DS path (DS-specific skills) ──────────────────────
+// One course per skill so every below-target skill always has a suggestion.
+export const COURSES_CUSTOM_DS = courses([
+  { id: 'genai-model-dev', title: 'Fine-Tuning and Deploying Generative AI Models', lectures: 22, duration: '2h 31m', skillTag: 'AI Model Development' },
+  { id: 'llm-eval', title: 'LLM Evaluation and Benchmarking in Practice', lectures: 25, duration: '2h 14m', skillTag: 'AI Evaluation and Benchmarking' },
+  { id: 'mlops-ai', title: 'MLOps and AI Monitoring Essentials', lectures: 17, duration: '1h 49m', skillTag: 'AI Operations and Monitoring' },
 ])
 
 /** Goal meta shared across all scenarios (timeline + weekly commitment). */

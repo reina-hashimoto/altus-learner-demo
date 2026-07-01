@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  PanelLeftClose,
   ArrowRight,
   Sparkles,
   TrendingUp,
@@ -13,6 +12,7 @@ import {
   Lightbulb,
   Loader2,
 } from 'lucide-react'
+import { UdemyIcon } from '@/components/icons/UdemyIcon'
 import { cn } from '@/components/ui/utils'
 import altusLogo from '@/assets/altus-logo.png'
 import { TypingIndicator } from '@/features/goal/altus/TypingIndicator'
@@ -83,7 +83,7 @@ export function AdminAltusPanel(props: AdminAltusPanelProps) {
       {/* toggle bar */}
       <div className="flex items-center gap-md p-md">
         <button className="text-ink-subdued hover:text-ink" aria-label="Collapse panel">
-          <PanelLeftClose className="size-5" strokeWidth={1.75} />
+          <UdemyIcon name="shrink-panel" size={20} />
         </button>
         <div className="flex flex-1 rounded-round bg-surface-midtone p-1">
           <ToggleTab active={view === 'altus'} onClick={() => setView('altus')}>

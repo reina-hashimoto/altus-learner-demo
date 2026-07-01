@@ -6,7 +6,7 @@ import { flows } from '@/flows/registry'
 import { PERSONA_LABEL, type Flow, type HubTab } from '@/flows/types'
 import { cn } from '@/components/ui/utils'
 
-const TABS: HubTab[] = ['beta', 'post-beta']
+const TABS: HubTab[] = ['post-beta', 'beta']
 const TAB_LABEL: Record<HubTab, string> = { beta: 'Beta', 'post-beta': 'Post-beta' }
 
 /** Prototype hub: choose a flow to play, grouped by release tab. */

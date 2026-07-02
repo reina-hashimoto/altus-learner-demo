@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
  * who know the shared passphrase. It's obfuscation-grade (not real security):
  * the entered value is SHA-256 hashed and compared to the embedded digest.
  */
-const PASSCODE_SHA256 = 'd8433e126a27e8a2ced638611ac73e1734a04ffa15d0febef7b06b80442f0cdb'
+const PASSCODE_SHA256 = '27a17988f56ffebd4f4665e19b5f4f77d77c0b4b5d10bbe289c3c70709f95d91'
 const STORAGE_KEY = 'altus-demo-unlocked'
 
 async function sha256Hex(input: string): Promise<string> {

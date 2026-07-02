@@ -36,13 +36,24 @@ interface SkillChartProps {
   /** Show the one-time onboarding tooltip anchored to the first primary Assess button. */
   assessOnboardingOpen?: boolean
   onDismissAssessOnboarding?: () => void
+  /** Per-skill verified score (0–200) from the assessment; falls back to the default. */
+  verifiedScores?: Record<string, number>
+  /** How the target proficiency is drawn: a centre dot, or a shaded target-band range. */
+  targetStyle?: 'dot' | 'range'
 }
 
-/** Concrete score shown for a verified skill (matches the assessment result). */
+/** Default score shown for a verified skill when no per-skill score is given. */
 const VERIFIED_SCORE = 148
 const VERIFIED_COLOR = '#0e8a5f'
+/** Diagonal-hatch fill marking the target proficiency band, with a solid purple-150 outline. */
+const TARGET_RANGE_BG =
+  'repeating-linear-gradient(45deg, rgba(109,40,210,0.22) 0, rgba(109,40,210,0.22) 3px, rgba(109,40,210,0.04) 3px, rgba(109,40,210,0.04) 7px)'
+const TARGET_RANGE_BORDER = 'var(--color-purple-150)'
 
-export function SkillChart({ skills, mode, perSkillMode, showAssess = false, onAssess, animateBars, primaryAssessIds, verifiedSkillIds, celebrateSkillId, assessOnboardingOpen, onDismissAssessOnboarding }: SkillChartProps) {
+/** Start (inclusive) of the 50-wide proficiency band containing `v`. */
+const bandStart = (v: number) => Math.min(Math.floor(v / 50), 3) * 50
+
+export function SkillChart({ skills, mode, perSkillMode, showAssess = false, onAssess, animateBars, primaryAssessIds, verifiedSkillIds, celebrateSkillId, assessOnboardingOpen, onDismissAssessOnboarding, verifiedScores, targetStyle = 'dot' }: SkillChartProps) {
   // Start bars at 0-width when animating, then transition to real values after mount.
   const [barsVisible, setBarsVisible] = useState(!animateBars)
   useEffect(() => {
@@ -143,17 +154,19 @@ export function SkillChart({ skills, mode, perSkillMode, showAssess = false, onA
           {skills.map((s, i) => {
             const em = effectiveModes[i]
             const verified = !!verifiedSkillIds?.has(s.id)
+            const score = verifiedScores?.[s.id] ?? VERIFIED_SCORE
             // Verified: exact assessment score in dark green. Otherwise snapped band centre.
-            const barValue = verified ? VERIFIED_SCORE : snapToBandCenter(s[em])
+            const barValue = verified ? score : snapToBandCenter(s[em])
             const barColor = verified ? VERIFIED_COLOR : em === 'estimated' ? ESTIMATED_COLOR : SELF_REPORTED_COLOR
-            const band = Math.min(Math.floor((verified ? VERIFIED_SCORE : s[em]) / 50), 3)
+            const band = Math.min(Math.floor((verified ? score : s[em]) / 50), 3)
             const level = BANDS[band]
             const tipTitle = verified
-              ? `${VERIFIED_SCORE} • ${level}`
+              ? `${score} • ${level}`
               : em === 'selfReported'
                 ? `${level} (Self-reported)`
                 : `${level} (Estimated)`
             const tipDate = verified ? 'Jul 2026' : 'Jun 2026'
+            const tBandStart = bandStart(s.target)
             return (
               <div
                 key={s.id}
@@ -161,6 +174,13 @@ export function SkillChart({ skills, mode, perSkillMode, showAssess = false, onA
                 onMouseEnter={() => setHoveredId(s.id)}
                 onMouseLeave={() => setHoveredId((h) => (h === s.id ? null : h))}
               >
+                {/* target proficiency RANGE — shaded band across the target proficiency level */}
+                {targetStyle === 'range' && (
+                  <span
+                    className="pointer-events-none absolute top-1/2 h-6 -translate-y-1/2 rounded-none border border-solid"
+                    style={{ left: pct(tBandStart), width: pct(50), background: TARGET_RANGE_BG, borderColor: TARGET_RANGE_BORDER }}
+                  />
+                )}
                 {/* bar */}
                 <div
                   className="absolute top-1/2 left-0 h-3 -translate-y-1/2 rounded-sm transition-[width,background-color] duration-700 ease-out"
@@ -169,15 +189,16 @@ export function SkillChart({ skills, mode, perSkillMode, showAssess = false, onA
                     background: barColor,
                   }}
                 />
-                {/* target proficiency dot — snapped to band centre. When the green
-                    completion bar sits under it, render it white so it stays legible. */}
-                <span
-                  className={cn(
-                    'absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-round',
-                    verified ? 'bg-white shadow-sm' : 'bg-brand',
-                  )}
-                  style={{ left: pct(snapToBandCenter(s.target)) }}
-                />
+                {/* target proficiency dot (default style) — snapped to band centre. */}
+                {targetStyle === 'dot' && (
+                  <span
+                    className={cn(
+                      'absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-round',
+                      verified ? 'bg-white shadow-sm' : 'bg-brand',
+                    )}
+                    style={{ left: pct(snapToBandCenter(s.target)) }}
+                  />
+                )}
                 {/* celebration burst near the bar once the skill is verified */}
                 {celebrateSkillId === s.id && <SkillCelebration value={barValue} />}
                 {/* hover tooltip — score/level + date, positioned above the bar end */}
@@ -189,7 +210,10 @@ export function SkillChart({ skills, mode, perSkillMode, showAssess = false, onA
 
         {/* Column 3: assess buttons — primary once a skill has reached target (verify via assessment) */}
         {showAssess && (() => {
-          const firstPrimaryIdx = skills.findIndex((s) => primaryAssessIds?.has(s.id))
+          const primaryIdx = skills.findIndex((s) => primaryAssessIds?.has(s.id))
+          // Anchor the onboarding tooltip to the first primary Assess button, or the
+          // first skill's button when the tooltip is opened without a primary skill.
+          const firstPrimaryIdx = primaryIdx >= 0 ? primaryIdx : assessOnboardingOpen ? 0 : -1
           return (
             <div className="flex flex-col gap-xs-mid">
               {skills.map((s, i) => {
@@ -239,10 +263,20 @@ export function SkillChart({ skills, mode, perSkillMode, showAssess = false, onA
             Self-reported
           </span>
         )}
-        <span className="flex items-center gap-xs">
-          <span className="size-2.5 rounded-round bg-brand" />
-          Target proficiency
-        </span>
+        {targetStyle === 'range' ? (
+          <span className="flex items-center gap-xs">
+            <span
+              className="inline-block h-3 w-6 rounded-none border border-solid"
+              style={{ background: TARGET_RANGE_BG, borderColor: TARGET_RANGE_BORDER }}
+            />
+            Target proficiency
+          </span>
+        ) : (
+          <span className="flex items-center gap-xs">
+            <span className="size-2.5 rounded-round bg-brand" />
+            Target proficiency
+          </span>
+        )}
         {skills.some((s) => verifiedSkillIds?.has(s.id)) && (
           <span className="flex items-center gap-xs">
             <span className="size-3 rounded-sm" style={{ background: VERIFIED_COLOR }} />
@@ -303,8 +337,8 @@ function AssessOnboarding({ onDismiss }: { onDismiss?: () => void }) {
       {/* arrow pointing up to the Assess button */}
       <span className="absolute -top-1.5 right-7 size-3 rotate-45 border-l border-t border-line-subdued bg-surface" />
       <p className="relative text-xs leading-relaxed text-ink">
-        You’ve self-reported reaching the target level! Take a quick Udemy assessment to verify your
-        skills and earn official certification.
+        Ready to make it official? Take a quick Udemy assessment to verify a skill and earn official
+        certification — your profile and learning path update automatically.
       </p>
       <div className="relative mt-sm flex justify-end">
         <Button udStyle="primary" size="xsmall" onClick={onDismiss}>

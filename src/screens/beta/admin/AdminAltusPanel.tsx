@@ -55,7 +55,7 @@ interface AdminAltusPanelProps {
   skills: Skill[]
   proficiency: ProficiencySelections
   chips: ChipDef[]
-  onProficiencyChange: (skillId: string, levelIndex: number) => void
+  onProficiencyChange: (skillId: string, levelIndex: number | null) => void
   onProficiencySubmit: () => void
   onSend: (text: string) => void
   onChip: (chip: ChipDef['id']) => void

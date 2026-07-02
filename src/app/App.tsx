@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-
 import { getFlow } from '@/flows/registry'
 import FlowIndex from '@/screens/FlowIndex'
 import LearningGoalsPage from '@/screens/LearningGoalsPage'
+import PlayerPage from '@/screens/beta/personal/PlayerPage'
+import SkillsProfilePage from '@/screens/beta/skills-profile/SkillsProfilePage'
 
 function FlowRoute() {
   const { flowId } = useParams()
@@ -21,6 +23,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<FlowIndex />} />
         <Route path="/learning-goals" element={<LearningGoalsPage />} />
+        <Route path="/skills-profile" element={<SkillsProfilePage />} />
+        <Route path="/:flowId/player" element={<PlayerPage />} />
         <Route path="/:flowId" element={<FlowRoute />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

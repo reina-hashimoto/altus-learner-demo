@@ -26,6 +26,8 @@ export interface Course {
   skillTag: string
   progress: number
   image: string
+  /** Instructor name — shown after the duration in the meta line when present. */
+  instructor?: string
   /** Content type — drives the meta line. Defaults to a video 'course'. */
   kind?: 'course' | 'roleplay' | 'lab' | 'assessment'
   /** Full meta line for non-course items, e.g. "Role Play • Gen AI • 1hr - 2hr". */

@@ -889,7 +889,14 @@ export default function GoalPage() {
                 proficiency={proficiency}
                 chips={config.chips}
                 onProficiencyChange={(skillId, levelIndex) =>
-                  setProficiency((p) => ({ ...p, [skillId]: levelIndex }))
+                  setProficiency((p) => {
+                    if (levelIndex === null) {
+                      const next = { ...p }
+                      delete next[skillId]
+                      return next
+                    }
+                    return { ...p, [skillId]: levelIndex }
+                  })
                 }
                 onProficiencySubmit={handleProficiencySubmit}
                 onSend={handleSend}

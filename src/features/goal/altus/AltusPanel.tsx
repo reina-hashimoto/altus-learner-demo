@@ -33,6 +33,8 @@ export interface AltusMessage {
   spinnerPill?: boolean
   /** Bullet list of update options shown under the message (personalized done). */
   options?: string[]
+  /** User bubble: clamp long text to ~3 lines with a See all / See less toggle. */
+  collapsible?: boolean
 }
 
 /** Summary shown in the "Review your goal" card before the path is generated. */
@@ -58,7 +60,7 @@ interface AltusPanelProps {
   skills: Skill[]
   proficiency: ProficiencySelections
   chips: ChipDef[]
-  onProficiencyChange: (skillId: string, levelIndex: number) => void
+  onProficiencyChange: (skillId: string, levelIndex: number | null) => void
   onProficiencySubmit: () => void
   onSend: (text: string) => void
   onChip: (chip: ChipDef['id']) => void
@@ -153,9 +155,13 @@ export function AltusPanel(props: AltusPanelProps) {
                 </div>
               ) : (
                 <div key={m.id} className="flex justify-end">
-                  <span className="max-w-[80%] rounded-lg bg-surface-accent px-sm py-xs text-sm text-ink">
-                    {m.text}
-                  </span>
+                  {m.collapsible ? (
+                    <CollapsibleBubble text={m.text} />
+                  ) : (
+                    <span className="max-w-[80%] rounded-lg bg-surface-accent px-sm py-xs text-sm text-ink">
+                      {m.text}
+                    </span>
+                  )}
                 </div>
               ),
             )}
@@ -514,6 +520,26 @@ function ToggleTab({
     >
       {children}
     </button>
+  )
+}
+
+/** User bubble that clamps long input to ~3 lines with a See all / See less toggle. */
+function CollapsibleBubble({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  // Long enough to be worth collapsing? ~3 lines ≈ 150 chars, or explicit newlines.
+  const isLong = text.length > 150 || text.split('\n').length > 3
+  return (
+    <span className="flex max-w-[85%] flex-col items-end gap-xxs rounded-lg bg-surface-accent px-sm py-xs text-sm text-ink">
+      <span className={cn('whitespace-pre-wrap', !expanded && isLong && 'line-clamp-3')}>{text}</span>
+      {isLong && (
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="text-xs font-bold text-brand hover:underline"
+        >
+          {expanded ? 'See less' : 'See all'}
+        </button>
+      )}
+    </span>
   )
 }
 

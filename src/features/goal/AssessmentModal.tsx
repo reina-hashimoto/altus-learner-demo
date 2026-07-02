@@ -50,9 +50,10 @@ function buildAssessment(name: string): AssessmentContent {
   }
 }
 
-const ACHIEVED_INDEX = 2 // Established — the result always lands on target
-const SCORE = 148
+const DEFAULT_SCORE = 148
 const PREV_SCORE = 61
+/** Proficiency band index (0–3) for a 0–200 score. */
+const bandOfScore = (v: number) => Math.min(Math.floor(v / 50), 3)
 
 // Per-level faceted hexagon badges (Figma result: green / orange / gold / grey).
 const BADGES = [
@@ -78,13 +79,15 @@ type Step = 'intro' | 'question' | 'result'
 interface AssessmentModalProps {
   skill: Skill
   goal: AssessmentGoal
+  /** Earned score (0–200); should exceed the skill's target. Defaults to 148. */
+  score?: number
   /** Close without completing (X on intro, Save & exit). */
   onClose: () => void
   /** Assessment completed — apply verification and return to the dashboard. */
   onComplete: () => void
 }
 
-export function AssessmentModal({ skill, goal, onClose, onComplete }: AssessmentModalProps) {
+export function AssessmentModal({ skill, goal, score = DEFAULT_SCORE, onClose, onComplete }: AssessmentModalProps) {
   const [step, setStep] = useState<Step>('intro')
   const [selected, setSelected] = useState<number | null>(null)
   const content = buildAssessment(skill.name)
@@ -112,7 +115,7 @@ export function AssessmentModal({ skill, goal, onClose, onComplete }: Assessment
           onSubmit={() => setStep('result')}
         />
       )}
-      {step === 'result' && <ResultPage skill={skill} goal={goal} content={content} onClose={onComplete} onBackToGoal={onComplete} onRetake={() => { setSelected(null); setStep('intro') }} />}
+      {step === 'result' && <ResultPage skill={skill} goal={goal} content={content} score={score} onClose={onComplete} onBackToGoal={onComplete} onRetake={() => { setSelected(null); setStep('intro') }} />}
     </div>
   )
 }
@@ -318,6 +321,7 @@ function ResultPage({
   skill,
   goal,
   content,
+  score,
   onClose,
   onBackToGoal,
   onRetake,
@@ -325,10 +329,12 @@ function ResultPage({
   skill: Skill
   goal: AssessmentGoal
   content: AssessmentContent
+  score: number
   onClose: () => void
   onBackToGoal: () => void
   onRetake: () => void
 }) {
+  const achievedIndex = bandOfScore(score)
   return (
     <div className="min-h-full">
       <header className="flex items-center justify-between border-b border-line-subdued px-lg py-md">
@@ -354,7 +360,7 @@ function ResultPage({
               <span className="flex items-center gap-xs text-sm font-medium text-ink-subdued">
                 Your score <Info className="size-3.5" strokeWidth={1.75} />
               </span>
-              <p className="text-[64px] font-bold leading-none text-ink">{SCORE}</p>
+              <p className="text-[64px] font-bold leading-none text-ink">{score}</p>
               <p className="mt-sm flex items-start gap-xs rounded-md bg-surface-accent px-sm py-xs text-xs text-ink">
                 <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-brand" strokeWidth={1.75} />
                 <span>You scored better than <span className="font-bold">2%</span> of assessed learners</span>
@@ -367,9 +373,9 @@ function ResultPage({
                 {BADGES.map((b, i) => (
                   <div key={b.name} className="flex flex-col items-center gap-xs text-center">
                     <div className="flex h-[62px] items-center justify-center">
-                      <GemBadge dark={b.dark} base={b.base} light={b.light} achieved={i === ACHIEVED_INDEX} />
+                      <GemBadge dark={b.dark} base={b.base} light={b.light} achieved={i === achievedIndex} />
                     </div>
-                    <span className={cn('text-sm', i === ACHIEVED_INDEX ? 'font-bold text-ink' : 'text-ink-subdued')}>{b.name}</span>
+                    <span className={cn('text-sm', i === achievedIndex ? 'font-bold text-ink' : 'text-ink-subdued')}>{b.name}</span>
                     <span className="text-xs text-ink-subdued">{b.range}</span>
                   </div>
                 ))}
@@ -377,7 +383,7 @@ function ResultPage({
               {/* markers line */}
               <div className="relative mt-md h-px bg-line">
                 <Marker pct={(PREV_SCORE / 200) * 100} label={`Previous ${PREV_SCORE}`} tone="muted" />
-                <Marker pct={(SCORE / 200) * 100} label={`Current ${SCORE}`} tone="dark" />
+                <Marker pct={(score / 200) * 100} label={`Current ${score}`} tone="dark" />
               </div>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import avatar from '@/assets/avatar.png'
 import udemyBusinessLogo from '@/assets/udemy-business-logo.png'
@@ -9,9 +10,9 @@ import udemyBusinessLogo from '@/assets/udemy-business-logo.png'
 export function UBHeader() {
   return (
     <header className="flex h-[72px] shrink-0 items-center gap-md border-b border-line-subdued bg-surface px-md">
-      <a href="#" aria-label="Udemy Business">
+      <Link to="/" aria-label="Udemy Business">
         <img src={udemyBusinessLogo} alt="Udemy Business" className="h-[34px] w-auto" />
-      </a>
+      </Link>
 
       <nav className="ml-sm flex items-center gap-md text-sm text-ink">
         <a className="hover:text-brand" href="#">Explore</a>

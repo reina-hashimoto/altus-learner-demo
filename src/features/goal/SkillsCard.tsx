@@ -28,12 +28,18 @@ interface SkillsCardProps {
   /** Show the one-time onboarding tooltip near the first primary Assess button. */
   assessOnboardingOpen?: boolean
   onDismissAssessOnboarding?: () => void
+  /** Per-skill verified score (0–200) from the assessment. */
+  verifiedScores?: Record<string, number>
+  /** Draw target proficiency as a centre dot or a shaded band range. */
+  targetStyle?: 'dot' | 'range'
+  /** Hide the "Take a skill assessment" banner (e.g. once the goal is complete). */
+  hideAssessBanner?: boolean
 }
 
 const SKILLS_TOOLTIP =
   'Shows the key skills required to achieve your goal and the target proficiency for each. Your current proficiency is based on either your learning activity, your self-reported proficiency, or verified Udemy Assessment results, helping you identify your skill gaps.'
 
-export function SkillsCard({ skills, role, mode, perSkillMode, skeleton, staticSkeleton, showRole, animateBars, onAssess, onTakeAssessment, primaryAssessIds, verifiedSkillIds, celebrateSkillId, assessOnboardingOpen, onDismissAssessOnboarding }: SkillsCardProps) {
+export function SkillsCard({ skills, role, mode, perSkillMode, skeleton, staticSkeleton, showRole, animateBars, onAssess, onTakeAssessment, primaryAssessIds, verifiedSkillIds, celebrateSkillId, assessOnboardingOpen, onDismissAssessOnboarding, verifiedScores, targetStyle, hideAssessBanner }: SkillsCardProps) {
   return (
     <section className="rounded-lg bg-surface p-lg">
       <div className="mb-md flex items-center justify-between">
@@ -77,19 +83,23 @@ export function SkillsCard({ skills, role, mode, perSkillMode, skeleton, staticS
             celebrateSkillId={celebrateSkillId}
             assessOnboardingOpen={assessOnboardingOpen}
             onDismissAssessOnboarding={onDismissAssessOnboarding}
+            verifiedScores={verifiedScores}
+            targetStyle={targetStyle}
           />
-          <button
-            onClick={onTakeAssessment}
-            className="mt-md flex w-full items-center gap-sm rounded-md bg-surface-accent px-sm py-sm text-left transition-colors hover:bg-brand-pale/70"
-          >
-            <Flag className="size-5 shrink-0 text-brand" strokeWidth={2} />
-            <span>
-              <span className="block text-sm font-bold text-ink">Take a skill assessment</span>
-              <span className="block text-xs text-ink-subdued">
-                Validate your skills and measure progress toward your target proficiency.
+          {!hideAssessBanner && (
+            <button
+              onClick={onTakeAssessment}
+              className="mt-md flex w-full items-center gap-sm rounded-md bg-surface-accent px-sm py-sm text-left transition-colors hover:bg-brand-pale/70"
+            >
+              <Flag className="size-5 shrink-0 text-brand" strokeWidth={2} />
+              <span>
+                <span className="block text-sm font-bold text-ink">Take a skill assessment</span>
+                <span className="block text-xs text-ink-subdued">
+                  Validate your skills and measure progress toward your target proficiency.
+                </span>
               </span>
-            </span>
-          </button>
+            </button>
+          )}
         </>
       )}
     </section>

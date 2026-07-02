@@ -7,7 +7,8 @@ export type ProficiencySelections = Record<string, number>
 interface SkillProficiencyFormProps {
   skills: Skill[]
   values: ProficiencySelections
-  onChange: (skillId: string, levelIndex: number) => void
+  /** levelIndex is null when the learner de-selects (clicks the active level again). */
+  onChange: (skillId: string, levelIndex: number | null) => void
   onSubmit: () => void
   /** Open the "Level definitions" info modal. */
   onOpenLevelDefs?: () => void
@@ -40,7 +41,7 @@ export function SkillProficiencyForm({ skills, values, onChange, onSubmit, onOpe
                 return (
                   <button
                     key={level}
-                    onClick={() => onChange(skill.id, idx)}
+                    onClick={() => onChange(skill.id, selected ? null : idx)}
                     className={cn(
                       'rounded-sm px-xs py-xs text-xs font-bold transition-colors',
                       selected

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, ChevronDown, ChevronRight, Sparkles, Flag, Lightbulb, FolderClosed, AlarmClock, Plus } from 'lucide-react'
+import { ChevronRight, Sparkles, Plus, History, ChevronDown } from 'lucide-react'
+import { cn } from '@/components/ui/utils'
 import { UBHeader } from '@/components/shell/UBHeader'
 import { COURSES_AI, COURSES_OPEN_PM, COURSES_CUSTOM_PM, type Course } from '@/data/goal'
-import { cn } from '@/components/ui/utils'
+import { PERSONAL_COURSES, COURSE_INSTRUCTOR } from '@/screens/beta/personal/data'
+import { CollapsibleNav } from '@/screens/beta/skills-profile/CollapsibleNav'
 
 // ── Suggestion chips ────────────────────────────────────────────────────────
 const CHIPS = ['Get promoted', 'Upskilling in generative AI', 'Learning new tools', 'Improve communication']
@@ -25,19 +27,34 @@ interface GoalDef {
   instructor: string
 }
 
-const GOALS: GoalDef[] = [
+// Active goals shown by default, in presentation order.
+const ACTIVE_GOALS: GoalDef[] = [
   {
-    id: 'fixed',
-    flowId: 'fixed-pm',
-    category: '1. Fixed',
-    title: 'AI benchmark fluency',
-    deadline: 'September, 2026',
-    type: 'org',
-    skills: ['Prompting AI Effectively', 'Evaluating AI Outputs', 'Responsible AI Usage'],
+    id: 'personal-e2e',
+    flowId: 'personal-goal-e2e',
+    category: '0. Personal',
+    title: 'Upskilling in generative AI',
+    deadline: 'June, 2026',
+    type: 'personal',
+    skills: ['Prompt-to-UI Prototyping', 'AI-powered Design Thinking', 'AI/ML Foundations'],
     completed: 0,
     total: 3,
-    course: COURSES_AI[0],
-    courseProgress: 0,
+    course: PERSONAL_COURSES[0],
+    courseProgress: 45,
+    instructor: COURSE_INSTRUCTOR['ai-design-thinking-fundamentals'],
+  },
+  {
+    id: 'custom-pm',
+    flowId: 'custom-pm',
+    category: '4. Custom',
+    title: 'Upskilling in Generative AI',
+    deadline: 'August, 2026',
+    type: 'org',
+    skills: ['AI-Native Product Development', 'AI-Powered Prototyping', 'AI-Assisted Product Analytics'],
+    completed: 0,
+    total: 3,
+    course: COURSES_CUSTOM_PM[0],
+    courseProgress: 30,
     instructor: 'Dr. Diana McKinsey',
   },
   {
@@ -54,6 +71,24 @@ const GOALS: GoalDef[] = [
     courseProgress: 75,
     instructor: 'Dr. Diana McKinsey',
   },
+]
+
+// Archived goals — hidden by default, revealed via the Archived accordion.
+const ARCHIVED_GOALS: GoalDef[] = [
+  {
+    id: 'fixed',
+    flowId: 'fixed-pm',
+    category: '1. Fixed',
+    title: 'AI benchmark fluency',
+    deadline: 'September, 2026',
+    type: 'org',
+    skills: ['Prompting AI Effectively', 'Evaluating AI Outputs', 'Responsible AI Usage'],
+    completed: 0,
+    total: 3,
+    course: COURSES_AI[0],
+    courseProgress: 0,
+    instructor: 'Dr. Diana McKinsey',
+  },
   {
     id: 'open',
     flowId: 'open-pm',
@@ -65,20 +100,6 @@ const GOALS: GoalDef[] = [
     completed: 0,
     total: 3,
     course: COURSES_OPEN_PM[0],
-    courseProgress: 0,
-    instructor: 'Dr. Diana McKinsey',
-  },
-  {
-    id: 'custom-pm',
-    flowId: 'custom-pm',
-    category: '4. Custom',
-    title: 'Upskilling in Generative AI',
-    deadline: 'August, 2026',
-    type: 'org',
-    skills: ['AI-Native Product Development', 'AI-Powered Prototyping', 'AI-Assisted Product Analytics'],
-    completed: 0,
-    total: 3,
-    course: COURSES_CUSTOM_PM[0],
     courseProgress: 0,
     instructor: 'Dr. Diana McKinsey',
   },
@@ -124,14 +145,32 @@ function GoalCard({ goal }: { goal: GoalDef }) {
 
   const courseMeta = `${goal.course.lectures} lectures · ${goal.course.duration}`
 
-  // Progress bar colour: 0% neutral grey · 1–99% purple · 100% green.
+  // The resumable course card only shows once content is in progress.
   const p = goal.courseProgress
-  const barColor = p <= 0 ? 'var(--color-gray-300)' : p >= 100 ? 'var(--color-green-500)' : 'var(--color-purple-400)'
+  const inProgress = p > 0
+  // Progress bar: 0% neutral grey · 1–99% purple · 100% green.
+  const barColor =
+    p >= 100 ? 'var(--color-green-500)' : p > 0 ? 'var(--color-purple-400)' : 'var(--color-gray-300)'
+
+  // Open the (already-built) video player for this course in a new tab.
+  const openPlayer = () => {
+    const base = import.meta.env.BASE_URL
+    const isDesign = /design|prototyp|ux|ui/i.test(`${goal.course.skillTag} ${goal.course.title}`)
+    const q = new URLSearchParams({
+      title: goal.course.title,
+      instructor: goal.instructor,
+      tag: goal.course.skillTag,
+      lectures: String(goal.course.lectures),
+      kind: goal.course.kind ?? 'course',
+      video: isDesign ? 'design' : 'programming',
+    })
+    window.open(`${base}${goal.flowId}/player?${q.toString()}`, '_blank', 'noopener')
+  }
 
   return (
-    <div className="rounded-xl bg-surface">
+    <div className="flex flex-col gap-md rounded-xl bg-surface p-md">
       {/* Goal header row */}
-      <div className="flex items-start gap-md p-md">
+      <div className="flex items-start gap-md">
         <ProgressRing completed={goal.completed} total={goal.total} />
         <div className="flex flex-1 flex-col gap-xs">
           <div>
@@ -174,106 +213,43 @@ function GoalCard({ goal }: { goal: GoalDef }) {
         </Link>
       </div>
 
-      {/* Next course row */}
-      <div className="flex items-start gap-sm border-t border-line-subdued px-md py-sm">
-        <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
-          <img src={goal.course.image} alt="" className="size-full object-cover" />
-          <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <svg viewBox="0 0 24 24" className="size-5 fill-white">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </span>
-        </div>
-        <div className="flex flex-1 flex-col gap-xxs">
-          <p className="line-clamp-2 text-sm font-medium leading-snug text-ink">{goal.course.title}</p>
-          <p className="text-xs text-ink-subdued">{goal.instructor}</p>
-          <p className="text-xs text-ink-subdued">
-            Course &nbsp;·&nbsp; {courseMeta}
-          </p>
-          <div className="mt-xxs flex items-center gap-xs">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-round bg-ink/10">
-              <div
-                className="h-full rounded-round"
-                style={{ width: `${goal.courseProgress}%`, background: barColor }}
-              />
-            </div>
-            <span className="text-xs tabular-nums text-ink">{goal.courseProgress}%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/** Left-sidebar My Learning navigation. */
-function MyLearningSidebar() {
-  const [libraryOpen, setLibraryOpen] = useState(true)
-
-  return (
-    <aside className="flex w-[280px] shrink-0 flex-col border-r border-line-subdued bg-surface">
-      {/* Header */}
-      <div className="flex items-center justify-between px-md py-md">
-        <h2 className="text-lg font-bold text-ink">My learning</h2>
-        <Link
-          to="/"
-          className="flex size-8 items-center justify-center rounded-md text-ink-subdued hover:bg-surface-pale hover:text-ink"
-          aria-label="Back"
-        >
-          <ArrowLeft className="size-5" strokeWidth={2} />
-        </Link>
-      </div>
-
-      {/* Nav items */}
-      <nav className="flex flex-col">
-        {/* Learning goals — active */}
-        <Link
-          to="/learning-goals"
-          className="relative flex items-center gap-sm py-sm pl-md pr-md text-sm font-bold text-ink bg-surface-accent"
-        >
-          <span className="absolute left-0 top-0 h-full w-[3px] rounded-r-sm bg-brand" />
-          <Flag className="size-5 text-brand" strokeWidth={1.75} />
-          Learning goals
-        </Link>
-
-        {/* Skills profile */}
-        <button className="flex items-center gap-sm py-sm pl-md pr-md text-sm font-medium text-ink-subdued hover:bg-surface-pale hover:text-ink">
-          <Lightbulb className="size-5" strokeWidth={1.75} />
-          Skills profile
-        </button>
-
-        {/* Library — collapsible */}
+      {/* Resumable course card — only when content is in progress; opens the player */}
+      {inProgress && (
         <button
-          onClick={() => setLibraryOpen((o) => !o)}
-          className="flex items-center gap-sm py-sm pl-md pr-md text-sm font-medium text-ink-subdued hover:bg-surface-pale hover:text-ink"
+          type="button"
+          onClick={openPlayer}
+          className="ml-[72px] flex items-start gap-md rounded-lg border border-line-subdued p-md text-left transition-shadow hover:shadow-[var(--box-shadow-100)]"
         >
-          <FolderClosed className="size-5" strokeWidth={1.75} />
-          <span className="flex-1 text-left">Library</span>
-          <ChevronDown
-            className={cn('size-4 transition-transform', libraryOpen ? 'rotate-0' : '-rotate-90')}
-            strokeWidth={2}
-          />
-        </button>
-
-        {libraryOpen && (
-          <div className="flex flex-col">
-            {['Courses', 'Learning paths', 'Certifications', 'Assessments', 'Labs'].map((item) => (
-              <button
-                key={item}
-                className="py-xs pl-[52px] pr-md text-left text-sm text-ink-subdued hover:bg-surface-pale hover:text-ink"
-              >
-                {item}
-              </button>
-            ))}
+          <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
+            <img src={goal.course.image} alt="" className="size-full object-cover" />
+            <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <svg viewBox="0 0 24 24" className="size-5 fill-white" aria-label="Resume">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
           </div>
-        )}
-
-        {/* Reminders */}
-        <button className="flex items-center gap-sm py-sm pl-md pr-md text-sm font-medium text-ink-subdued hover:bg-surface-pale hover:text-ink">
-          <AlarmClock className="size-5" strokeWidth={1.75} />
-          Reminders
+          <div className="flex flex-1 flex-col gap-xs">
+            <div className="flex flex-col gap-xxs">
+              <p className="line-clamp-2 text-md font-medium leading-snug text-ink">{goal.course.title}</p>
+              <p className="text-xs text-ink-subdued">{goal.instructor}</p>
+            </div>
+            <div className="flex flex-wrap gap-xs">
+              <span className="rounded-sm border border-line px-xs py-[3px] text-xs text-ink-subdued">Course</span>
+              <span className="rounded-sm border border-line px-xs py-[3px] text-xs text-ink-subdued">{courseMeta}</span>
+            </div>
+            <div className="mt-xxs flex items-center gap-sm">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-round bg-line-subdued">
+                <div
+                  className="h-full rounded-round"
+                  style={{ width: `${p}%`, background: barColor }}
+                />
+              </div>
+              <span className="text-xs tabular-nums text-ink-subdued">{p}%</span>
+            </div>
+          </div>
         </button>
-      </nav>
-    </aside>
+      )}
+    </div>
   )
 }
 
@@ -281,12 +257,14 @@ function MyLearningSidebar() {
 
 export default function LearningGoalsPage() {
   const [draft, setDraft] = useState('')
+  const [navOpen, setNavOpen] = useState(true)
+  const [archiveOpen, setArchiveOpen] = useState(false)
 
   return (
     <div className="flex h-screen flex-col bg-surface text-ink">
       <UBHeader />
       <div className="flex flex-1 overflow-hidden">
-        <MyLearningSidebar />
+        <CollapsibleNav active="learning-goals" open={navOpen} onToggle={() => setNavOpen((o) => !o)} />
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto bg-surface-pale px-xl py-lg">
@@ -339,9 +317,29 @@ export default function LearningGoalsPage() {
 
             {/* Goals list */}
             <div className="mt-lg flex flex-col gap-md">
-              {GOALS.map((g) => (
+              {ACTIVE_GOALS.map((g) => (
                 <GoalCard key={g.id} goal={g} />
               ))}
+            </div>
+
+            {/* Archived goals — hidden by default, right-aligned ghost toggle */}
+            <div className="mt-md flex flex-col items-end gap-md">
+              <button
+                onClick={() => setArchiveOpen((o) => !o)}
+                className="flex items-center gap-xs rounded-md px-xs py-xxs text-sm font-medium text-ink-subdued transition-colors hover:text-ink"
+                aria-expanded={archiveOpen}
+              >
+                <History className="size-4" strokeWidth={1.75} />
+                Archived ({ARCHIVED_GOALS.length})
+                <ChevronDown className={cn('size-4 transition-transform', archiveOpen ? 'rotate-180' : '')} strokeWidth={2} />
+              </button>
+              {archiveOpen && (
+                <div className="flex w-full animate-altus-fadein flex-col gap-md">
+                  {ARCHIVED_GOALS.map((g) => (
+                    <GoalCard key={g.id} goal={g} />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Prototype helper */}

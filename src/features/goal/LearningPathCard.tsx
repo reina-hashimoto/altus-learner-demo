@@ -9,6 +9,8 @@ function CourseRow({
   justUpdated,
   removing,
   suppressLoad,
+  fullReload,
+  onClick,
 }: {
   course: Course
   isFirst: boolean
@@ -21,11 +23,16 @@ function CourseRow({
   removing?: boolean
   /** Glow but keep the number (no loading bar) — used for cards about to be removed. */
   suppressLoad?: boolean
+  /** Full reload: skeleton the thumbnail + title + meta while animating (e.g. instructor swap). */
+  fullReload?: boolean
+  /** When provided, the card is clickable (opens the course player). */
+  onClick?: () => void
 }) {
   const kind = course.kind ?? 'course'
   const isCourse = kind === 'course'
   const showProgress = kind === 'course' || kind === 'assessment'
-  const showLoadingBar = animating && !suppressLoad
+  const reloading = !!(animating && fullReload)
+  const showLoadingBar = animating && !suppressLoad && !reloading
 
   return (
     // Grid-rows collapse gives a smooth height animation on exit, regardless of content height.
@@ -45,16 +52,31 @@ function CourseRow({
           </div>
 
           <div
+            onClick={onClick}
+            role={onClick ? 'button' : undefined}
+            tabIndex={onClick ? 0 : undefined}
+            onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onClick()) : undefined}
             className={`relative flex flex-1 gap-sm rounded-lg border border-line-subdued bg-surface p-sm ${
               isLast ? '' : 'mb-xs-mid'
-            }`}
+            } ${onClick ? 'cursor-pointer transition-shadow hover:shadow-[var(--box-shadow-100)]' : ''}`}
           >
             {animating && <span aria-hidden className="course-glow-ring" />}
-            <img src={course.image} alt="" className="size-12 shrink-0 rounded-md object-cover" />
+            {reloading ? (
+              <span className="skeleton size-12 shrink-0 rounded-md" />
+            ) : (
+              <img src={course.image} alt="" className="size-12 shrink-0 rounded-md object-cover" />
+            )}
             <div className="flex flex-1 flex-col gap-sm">
               <div className="flex flex-col gap-xxs">
-                <h3 className="text-lg font-medium leading-tight text-ink">{course.title}</h3>
-                {isCourse ? (
+                {reloading ? (
+                  <>
+                    <span className="skeleton h-4 w-3/4 rounded-round" />
+                    <span className="skeleton mt-xxs h-3 w-1/2 rounded-round" />
+                  </>
+                ) : (
+                  <h3 className="text-lg font-medium leading-tight text-ink">{course.title}</h3>
+                )}
+                {reloading ? null : isCourse ? (
                   showLoadingBar ? (
                     <p className="flex items-center gap-xs text-xs text-ink-subdued">
                       Course •
@@ -67,6 +89,7 @@ function CourseRow({
                         className={`transition-colors duration-500 ${justUpdated ? 'font-bold text-ink' : 'font-normal'}`}
                       >
                         {course.lectures} lectures • {course.duration}
+                        {course.instructor ? ` • ${course.instructor}` : ''}
                       </span>
                     </p>
                   )
@@ -157,9 +180,13 @@ interface LearningPathCardProps {
   reachedIds?: Set<string>
   /** Total shown next to "Learning path"; defaults to the course count. */
   countLabel?: string
+  /** Course ids that should skeleton their thumbnail + title + meta while animating. */
+  fullReloadIds?: Set<string>
+  /** When provided, cards become clickable (opens the course player). */
+  onCourseClick?: (course: Course) => void
 }
 
-export function LearningPathCard({ courses, skeleton, staticSkeleton, curated, animatingIds, justUpdatedIds, removingIds, reachedIds, countLabel }: LearningPathCardProps) {
+export function LearningPathCard({ courses, skeleton, staticSkeleton, curated, animatingIds, justUpdatedIds, removingIds, reachedIds, countLabel, fullReloadIds, onCourseClick }: LearningPathCardProps) {
   // Ring + "N courses" count only video courses; role play / labs are extras.
   const courseCount = courses.filter((c) => (c.kind ?? 'course') === 'course').length
   return (
@@ -193,6 +220,8 @@ export function LearningPathCard({ courses, skeleton, staticSkeleton, curated, a
                 justUpdated={justUpdatedIds?.has(c.id)}
                 removing={removingIds?.has(c.id)}
                 suppressLoad={reachedIds?.has(c.id)}
+                fullReload={fullReloadIds?.has(c.id)}
+                onClick={onCourseClick ? () => onCourseClick(c) : undefined}
               />
             ))}
       </div>

@@ -25,7 +25,20 @@ const CHIPS = [
   'Improve communication',
 ]
 
-const DEFAULT_GOAL = 'I want to upskill in Generative AI'
+/**
+ * Accept professional / workplace-skill goals; reject goals clearly outside
+ * white-collar upskilling (trades, culinary, hobbies, sports). Returns null when
+ * accepted, or a nudge message when the goal should be re-entered.
+ */
+const OFF_TOPIC =
+  /\b(chef|cook(ing)?|culinary|bake|baking|bread|pastry|pizza|barista|bartend(er|ing)?|waiter|waitress|plumb(er|ing)?|carpenter|carpentry|electrician|welder|welding|mechanic|farmer|farming|fisher|fishing|truck|driver|athlete|marathon|soccer|basketball|guitar|piano|violin|sing(er|ing)?|dance|dancing|knit(ting)?|sew(ing)?|garden(ing)?|woodwork|pottery|surf(ing)?|yoga instructor|makeup artist|tattoo)\b/i
+
+function rejectReason(goal: string): string | null {
+  if (OFF_TOPIC.test(goal)) {
+    return "Udemy Business focuses on professional and workplace skills, so I can't build a plan for that one. Try a career-related goal — for example, “Upskilling in Generative AI” or “Improve communication.”"
+  }
+  return null
+}
 
 // ── Streak widgets (local, mirrors the marketplace home pattern) ─────────────
 
@@ -127,11 +140,19 @@ function ChallengeCard() {
 // ── Setup screen ─────────────────────────────────────────────────────────────
 
 export function SetupScreen({ onSubmit }: { onSubmit: (goal: string) => void }) {
-  const [value, setValue] = useState(DEFAULT_GOAL)
+  const [value, setValue] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   const submit = () => {
     const goal = value.trim()
-    if (goal) onSubmit(goal)
+    if (!goal) return
+    const reason = rejectReason(goal)
+    if (reason) {
+      setError(reason)
+      return
+    }
+    setError(null)
+    onSubmit(goal)
   }
 
   return (
@@ -156,7 +177,10 @@ export function SetupScreen({ onSubmit }: { onSubmit: (goal: string) => void }) 
           >
             <input
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={(e) => {
+                setValue(e.target.value)
+                if (error) setError(null)
+              }}
               placeholder="Describe a goal you want to work toward"
               className="h-9 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-subdued"
             />
@@ -168,6 +192,13 @@ export function SetupScreen({ onSubmit }: { onSubmit: (goal: string) => void }) 
               <ArrowRight className="size-4" strokeWidth={2.25} />
             </button>
           </form>
+
+          {error && (
+            <p className="mt-sm flex items-start gap-xs text-sm text-[var(--color-red-400)]">
+              <Info className="mt-0.5 size-4 shrink-0" strokeWidth={2} />
+              {error}
+            </p>
+          )}
 
           <div className="mt-md flex flex-wrap gap-sm">
             {CHIPS.map((c) => (

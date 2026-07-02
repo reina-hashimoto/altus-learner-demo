@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AssessOnboarding } from '@/features/goal/AssessOnboarding'
 import { SCALE_MAX, TICKS, BANDS, type ProfileSkill, type SkillSource } from './data'
 
 /** Resolved per-skill state (base or updated via assessment / self-report). */
@@ -37,9 +38,14 @@ interface SkillsProfileChartProps {
   state: Record<string, SkillView>
   celebrateId: string | null
   onAssess: (skill: ProfileSkill) => void
+  /** Skill ids that reached target via self-report → Assess button turns primary. */
+  primaryIds?: Set<string>
+  /** Show the one-time "make it official" tooltip on the first primary Assess button. */
+  onboardingOpen?: boolean
+  onDismissOnboarding?: () => void
 }
 
-export function SkillsProfileChart({ skills, state, celebrateId, onAssess }: SkillsProfileChartProps) {
+export function SkillsProfileChart({ skills, state, celebrateId, onAssess, primaryIds, onboardingOpen, onDismissOnboarding }: SkillsProfileChartProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   // Hide the proficiency-band labels once the axis is too narrow — right before
@@ -149,27 +155,37 @@ export function SkillsProfileChart({ skills, state, celebrateId, onAssess }: Ski
           })}
         </div>
 
-        {/* Column 3: Assess / Retake */}
-        <div className="flex flex-col gap-md">
-          {skills.map((s) => {
-            const view = state[s.id] ?? { source: s.source, value: s.current }
-            const verified = view.source === 'verified'
-            return (
-              <div key={s.id} className="flex h-9 items-center justify-center">
-                {verified ? (
-                  <Button udStyle="ghost" size="xsmall" onClick={() => onAssess(s)} className="w-24 justify-center gap-xs">
-                    Retake
-                    <RotateCw className="size-3.5" strokeWidth={2} />
-                  </Button>
-                ) : (
-                  <Button udStyle="secondary" size="xsmall" onClick={() => onAssess(s)} className="w-24 justify-center">
-                    Assess
-                  </Button>
-                )}
-              </div>
-            )
-          })}
-        </div>
+        {/* Column 3: Assess / Retake — Assess turns primary once a skill has reached
+            target via self-report (verify via assessment), with a one-time tooltip. */}
+        {(() => {
+          const primaryIdx = skills.findIndex((s) => primaryIds?.has(s.id))
+          const firstPrimaryIdx = primaryIdx >= 0 ? primaryIdx : onboardingOpen ? 0 : -1
+          return (
+            <div className="flex flex-col gap-md">
+              {skills.map((s, i) => {
+                const view = state[s.id] ?? { source: s.source, value: s.current }
+                const verified = view.source === 'verified'
+                const isPrimary = !verified && !!primaryIds?.has(s.id)
+                return (
+                  <div key={s.id} className="relative flex h-9 items-center justify-center">
+                    {verified ? (
+                      <Button udStyle="ghost" size="xsmall" onClick={() => onAssess(s)} className="w-24 justify-center gap-xs">
+                        Retake
+                        <RotateCw className="size-3.5" strokeWidth={2} />
+                      </Button>
+                    ) : (
+                      <Button udStyle={isPrimary ? 'primary' : 'secondary'} size="xsmall" onClick={() => onAssess(s)} className="w-24 justify-center">
+                        Assess
+                      </Button>
+                    )}
+                    {/* One-time onboarding tooltip anchored to the first primary Assess button */}
+                    {i === firstPrimaryIdx && onboardingOpen && <AssessOnboarding onDismiss={onDismissOnboarding} />}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
       </div>
 
     </div>

@@ -230,7 +230,10 @@ export default function CustomGoalFlow() {
   const [stage, setStage] = useState<Stage>('intro')
   const [messages, setMessages] = useState<AltusMessage[]>([])
   const [introPhase, setIntroPhase] = useState(0)
+  // `proficiency` is the live form draft; `committedProficiency` is what's applied
+  // to the chart. Re-editing keeps committed values visible (no Estimated regression).
   const [proficiency, setProficiency] = useState<ProficiencySelections>({})
+  const [committedProficiency, setCommittedProficiency] = useState<ProficiencySelections>({})
   const [reviewRole, setReviewRole] = useState(variant.role)
   // Role seniority (Senior, Staff, …); shifts estimated + target skill scores.
   const [level, setLevel] = useState<string | null>(null)
@@ -281,18 +284,22 @@ export default function CustomGoalFlow() {
   const [verifiedSkillIds, setVerifiedSkillIds] = useState<Set<string>>(new Set())
   const [verifiedScores, setVerifiedScores] = useState<Record<string, number>>({})
   const [celebrateSkillId, setCelebrateSkillId] = useState<string | null>(null)
+  // "Make it official" assessment nudge — dismissed once via "Got it".
+  const [assessTipDismissed, setAssessTipDismissed] = useState(false)
 
   const done = stage === 'done'
-  const isPostSubmit = stage === 'review' || stage === 'confirming' || done
+  // Once anything is committed, the chart shows self-reported data — and keeps it
+  // visible while the form is re-opened for editing (Issue-1 fix).
+  const hasCommitted = Object.keys(committedProficiency).length > 0
 
   // Per-skill bar mode: assessed → self-reported (purple), skipped → estimated (orange).
-  const perSkillMode: Record<string, 'estimated' | 'selfReported'> | undefined = isPostSubmit
-    ? Object.fromEntries(skills.map((s) => [s.id, proficiency[s.id] !== undefined ? 'selfReported' : 'estimated']))
+  const perSkillMode: Record<string, 'estimated' | 'selfReported'> | undefined = hasCommitted
+    ? Object.fromEntries(skills.map((s) => [s.id, committedProficiency[s.id] !== undefined ? 'selfReported' : 'estimated']))
     : undefined
 
-  const skillsForChart = isPostSubmit
+  const skillsForChart = hasCommitted
     ? skills.map((s) => {
-        const levelIdx = proficiency[s.id]
+        const levelIdx = committedProficiency[s.id]
         return levelIdx !== undefined ? { ...s, selfReported: levelIdx * 50 + 25 } : s
       })
     : skills
@@ -306,12 +313,22 @@ export default function CustomGoalFlow() {
   // for skills that haven't yet reached their target proficiency.
   const currentBand = (s: Skill) => {
     if (verifiedScores[s.id] !== undefined) return bandOf(verifiedScores[s.id])
-    if (proficiency[s.id] !== undefined) return proficiency[s.id]
+    if (committedProficiency[s.id] !== undefined) return committedProficiency[s.id]
     return bandOf(s.estimated)
   }
   const reachedTarget = (s: Skill) => currentBand(s) >= bandOf(s.target)
   // Assessment result for a skill — set to clearly clear its (level-adjusted) target.
   const assessScoreFor = (s: Skill) => Math.min(195, s.target + 15)
+
+  // Skills that reached target via self-report (not yet verified) → Assess button
+  // turns primary + a one-time "make it official" tooltip until acknowledged.
+  const primaryAssessIds = new Set(
+    done
+      ? skills
+          .filter((s) => !verifiedSkillIds.has(s.id) && committedProficiency[s.id] !== undefined && committedProficiency[s.id] >= bandOf(s.target))
+          .map((s) => s.id)
+      : [],
+  )
 
   const assistantReply = (text: string) =>
     setMessages((prev) => [...prev, { id: nextId(), role: 'assistant', text }])
@@ -547,6 +564,9 @@ export default function CustomGoalFlow() {
           m.id === loadingId ? { ...m, spinnerPill: false, pill: true, text: 'Skill proficiency updated' } : m,
         ),
       )
+      // Apply the freshly-entered levels and re-arm the assessment nudge.
+      setCommittedProficiency(proficiency)
+      setAssessTipDismissed(false)
       setStage('review')
     }, 1600)
   }
@@ -683,6 +703,9 @@ export default function CustomGoalFlow() {
                 verifiedSkillIds={verifiedSkillIds}
                 verifiedScores={verifiedScores}
                 celebrateSkillId={celebrateSkillId}
+                primaryAssessIds={primaryAssessIds}
+                assessOnboardingOpen={primaryAssessIds.size > 0 && !assessTipDismissed}
+                onDismissAssessOnboarding={() => setAssessTipDismissed(true)}
                 hideAssessBanner={!done}
               />
 

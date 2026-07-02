@@ -139,7 +139,11 @@ export default function GoalPage() {
   const [stage, setStage] = useState<Stage>('intro')
   const [messages, setMessages] = useState<AltusMessage[]>([])
   const [introPhase, setIntroPhase] = useState(0)
+  // `proficiency` is the live form draft; `committedProficiency` is what's actually
+  // applied to the chart. Re-editing keeps the committed values on screen (no
+  // regression to Estimated) until the form is submitted again.
   const [proficiency, setProficiency] = useState<ProficiencySelections>({})
+  const [committedProficiency, setCommittedProficiency] = useState<ProficiencySelections>({})
   const [userRole, setUserRole] = useState('')
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
@@ -237,17 +241,20 @@ export default function GoalPage() {
   }
 
   const done = stage === 'done'
-  const isPostSubmit = stage === 'review' || stage === 'confirming' || done
+
+  // Once anything has been committed, the chart shows self-reported data — and keeps
+  // showing it while the form is re-opened for editing (drives Issue-1 fix).
+  const hasCommitted = Object.keys(committedProficiency).length > 0
 
   // Per-skill overrides: assessed skills → selfReported (purple), skipped → estimated (orange).
-  const perSkillMode: Record<string, 'estimated' | 'selfReported'> | undefined = isPostSubmit
-    ? Object.fromEntries(activeSkills.map((s) => [s.id, proficiency[s.id] !== undefined ? 'selfReported' : 'estimated']))
+  const perSkillMode: Record<string, 'estimated' | 'selfReported'> | undefined = hasCommitted
+    ? Object.fromEntries(activeSkills.map((s) => [s.id, committedProficiency[s.id] !== undefined ? 'selfReported' : 'estimated']))
     : undefined
 
-  // Populate selfReported values from the user's level selections (levelIdx → band centre).
-  const skillsForChart = isPostSubmit
+  // Populate selfReported values from the committed level selections (levelIdx → band centre).
+  const skillsForChart = hasCommitted
     ? activeSkills.map((s) => {
-        const levelIdx = proficiency[s.id]
+        const levelIdx = committedProficiency[s.id]
         return levelIdx !== undefined ? { ...s, selfReported: levelIdx * 50 + 25 } : s
       })
     : activeSkills
@@ -257,11 +264,11 @@ export default function GoalPage() {
   const pathSkeleton = !pathContentReady
 
   // Skills whose self-reported level meets or exceeds the target — exclude their courses from the path.
-  const masteredSkillNames: Set<string> = isPostSubmit
+  const masteredSkillNames: Set<string> = hasCommitted
     ? new Set(
         activeSkills
           .filter((s) => {
-            const levelIdx = proficiency[s.id]
+            const levelIdx = committedProficiency[s.id]
             if (levelIdx === undefined) return false
             const selfCenter = levelIdx * 50 + 25
             const targetCenter = Math.min(Math.floor(s.target / 50), 3) * 50 + 25
@@ -280,7 +287,7 @@ export default function GoalPage() {
   const bandOf = (v: number) => Math.min(Math.floor(v / 50), 3)
   type SkillState = 'reached' | 'improved' | 'regressed' | 'same'
   const flexSkillState = (s: Skill): SkillState => {
-    const lvl = proficiency[s.id]
+    const lvl = committedProficiency[s.id]
     if (lvl === undefined) return 'same'
     if (lvl >= bandOf(s.target)) return 'reached'
     if (lvl > bandOf(s.estimated)) return 'improved'
@@ -311,6 +318,16 @@ export default function GoalPage() {
   // Skills that have met their target — via self-report OR a verified assessment.
   // Practice (role play / lab) is only recommended for skills NOT yet in this set.
   const reachedForPracticeIds = new Set<string>([...reachedSkillIds, ...verifiedSkillIds])
+
+  // Reached-target-but-unverified skills → Assess button turns primary + a one-time
+  // "make it official" tooltip. Derived synchronously the moment the goal reaches
+  // 'done', so the primary state appears within ~1s of confirming — it no longer
+  // waits on Flex's multi-second path-optimization glow. (Flex still sets its own
+  // primaryAssessIds during that choreography; we union it in so nothing regresses.)
+  const reachedUnverifiedIds = new Set(
+    done ? activeSkills.filter((s) => flexSkillState(s) === 'reached' && !verifiedSkillIds.has(s.id)).map((s) => s.id) : [],
+  )
+  const effectivePrimaryAssessIds = new Set<string>([...reachedUnverifiedIds, ...primaryAssessIds])
 
   const displayedCourses = (() => {
     if (config.optimizeBySkill) {
@@ -466,7 +483,7 @@ export default function GoalPage() {
           targetDate: 'August 31, 2026',
           weeklyTime,
           skills: activeSkills.map((s) => {
-            const levelIdx = proficiency[s.id]
+            const levelIdx = committedProficiency[s.id]
             const bandIdx = levelIdx !== undefined ? levelIdx : Math.min(Math.floor(s.estimated / 50), 3)
             return {
               name: s.name,
@@ -850,6 +867,10 @@ export default function GoalPage() {
 
     window.setTimeout(() => {
       setUpdatingSkills(false)
+      // Apply the freshly-entered levels to the chart, and re-arm the assessment
+      // nudge so a newly reached-target skill lights up its Assess button + tooltip.
+      setCommittedProficiency(proficiency)
+      setAssessOnboardingDismissed(false)
       if (config.showGoalConfirmation) {
         // Custom: spinner → check pill, then reveal the Review your goal card.
         setMessages((prev) =>
@@ -883,7 +904,7 @@ export default function GoalPage() {
         })
         setStage('done')
       }
-    }, 1800)
+    }, 1000)
   }
 
   const handleConfirm = () => {
@@ -997,11 +1018,11 @@ export default function GoalPage() {
                     if (s) setAssessmentSkill(s)
                   }}
                   onTakeAssessment={() => startProficiency()}
-                  primaryAssessIds={primaryAssessIds}
+                  primaryAssessIds={effectivePrimaryAssessIds}
                   verifiedSkillIds={verifiedSkillIds}
                   verifiedScores={verifiedScores}
                   celebrateSkillId={celebrateSkillId}
-                  assessOnboardingOpen={primaryAssessIds.size > 0 && !assessOnboardingDismissed}
+                  assessOnboardingOpen={effectivePrimaryAssessIds.size > 0 && !assessOnboardingDismissed}
                   onDismissAssessOnboarding={() => setAssessOnboardingDismissed(true)}
                   targetStyle={isFlex ? 'range' : undefined}
                 />

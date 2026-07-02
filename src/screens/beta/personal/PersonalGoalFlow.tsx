@@ -180,7 +180,10 @@ export default function PersonalGoalFlow() {
   const nextId = () => `m${++idRef.current}`
 
   const [messages, setMessages] = useState<AltusMessage[]>([])
+  // `proficiency` is the live form draft; `committedProficiency` is what's applied
+  // to the chart. Re-editing keeps committed values visible (no Estimated regression).
   const [proficiency, setProficiency] = useState<ProficiencySelections>({})
+  const [committedProficiency, setCommittedProficiency] = useState<ProficiencySelections>({})
   const [userRole, setUserRole] = useState('Product Designer')
   const [weeklyTime, setWeeklyTime] = useState(PERSONAL_GOAL.defaultWeekly)
   const [targetDate, setTargetDate] = useState<Date | null>(null)
@@ -190,7 +193,6 @@ export default function PersonalGoalFlow() {
   const [pathBuilding, setPathBuilding] = useState(false) // LP loading bar showing
   const [pathReady, setPathReady] = useState(false) // final 4 items shown
   const [skillsBarsAnimating, setSkillsBarsAnimating] = useState(false)
-  const [showAssessTip, setShowAssessTip] = useState(false)
   const [assessTipDismissed, setAssessTipDismissed] = useState(false)
 
   // Thinking indicators.
@@ -282,16 +284,28 @@ export default function PersonalGoalFlow() {
   }, [dragging])
 
   // ── Self-report reflection (flex logic) — only meaningful once revealed ──
-  const isPostConfirm = stage === 'confirming' || stage === 'done'
-  const perSkillMode: Record<string, 'estimated' | 'selfReported'> | undefined = isPostConfirm
-    ? Object.fromEntries(skills.map((s) => [s.id, proficiency[s.id] !== undefined ? 'selfReported' : 'estimated']))
+  // Once anything is committed, the chart shows self-reported data — and keeps it
+  // visible while the form is re-opened for editing (Issue-1 fix).
+  const hasCommitted = Object.keys(committedProficiency).length > 0
+  const perSkillMode: Record<string, 'estimated' | 'selfReported'> | undefined = hasCommitted
+    ? Object.fromEntries(skills.map((s) => [s.id, committedProficiency[s.id] !== undefined ? 'selfReported' : 'estimated']))
     : undefined
-  const skillsForChart = isPostConfirm
+  const skillsForChart = hasCommitted
     ? skills.map((s) => {
-        const lvl = proficiency[s.id]
+        const lvl = committedProficiency[s.id]
         return lvl !== undefined ? { ...s, selfReported: lvl * 50 + 25 } : s
       })
     : skills
+
+  // Skills that reached target via self-report (committed, not yet verified) →
+  // Assess button turns primary + a one-time "make it official" tooltip.
+  const primaryAssessIds = new Set(
+    stage === 'done'
+      ? skills
+          .filter((s) => !verifiedSkillIds.has(s.id) && committedProficiency[s.id] !== undefined && committedProficiency[s.id] >= bandOf(s.target))
+          .map((s) => s.id)
+      : [],
+  )
 
   const displayedCourses = activeCourses.filter((c) => !removedIds.has(c.id)).map((c) => courseOverrides[c.id] ?? c)
   const remainingVideoCount = displayedCourses.filter((c) => (c.kind ?? 'course') === 'course').length
@@ -464,6 +478,10 @@ export default function PersonalGoalFlow() {
     setMessages((prev) => [...prev, { id: loadingId, role: 'assistant', text: 'Updating skills…', spinnerPill: true }])
     window.setTimeout(() => {
       setUpdatingSkills(false)
+      // Apply the freshly-entered levels and re-arm the assessment nudge so a newly
+      // reached-target skill lights up its Assess button + tooltip.
+      setCommittedProficiency(proficiency)
+      setAssessTipDismissed(false)
       setMessages((prev) => prev.map((m) => (m.id === loadingId ? { ...m, spinnerPill: false, pill: true, text: 'Skill proficiency updated' } : m)))
       setStage('review')
     }, 1600)
@@ -495,7 +513,6 @@ export default function PersonalGoalFlow() {
         ]
       })
       setStage('done')
-      window.setTimeout(() => setShowAssessTip(true), 500)
     }, BUILD_MS)
   }
 
@@ -667,7 +684,8 @@ export default function PersonalGoalFlow() {
                 celebrateSkillId={celebrateSkillId}
                 targetStyle="range"
                 hideAssessBanner={allComplete}
-                assessOnboardingOpen={showAssessTip && !assessTipDismissed}
+                primaryAssessIds={primaryAssessIds}
+                assessOnboardingOpen={primaryAssessIds.size > 0 && !assessTipDismissed}
                 onDismissAssessOnboarding={() => setAssessTipDismissed(true)}
               />
 

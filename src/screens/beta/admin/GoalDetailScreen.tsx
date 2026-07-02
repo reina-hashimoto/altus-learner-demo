@@ -158,6 +158,16 @@ export function GoalDetailScreen() {
   const showForm = stage === 'proficiency'
   const review = stage === 'confirm' || stage === 'generating' ? GOAL_REVIEW : null
 
+  // Skills self-reported at/above target → Assess button turns primary + a one-time
+  // "make it official" tooltip until acknowledged with "Got it".
+  const bandOf = (v: number) => Math.min(Math.floor(v / 50), 3)
+  const [assessTipDismissed, setAssessTipDismissed] = useState(false)
+  const primaryAssessIds = new Set(
+    ready
+      ? ADMIN_SKILLS.filter((s) => proficiency[s.id] !== undefined && proficiency[s.id] >= bandOf(s.target)).map((s) => s.id)
+      : [],
+  )
+
   const chips: ChipDef[] =
     stage === 'done'
       ? [ASSESS_CHIP, ROLE_CHIP, STUDY_CHIP]
@@ -268,6 +278,9 @@ export function GoalDetailScreen() {
                 showRole={ready}
                 onAssess={() => handleChip('assessment')}
                 onTakeAssessment={() => handleChip('assessment')}
+                primaryAssessIds={primaryAssessIds}
+                assessOnboardingOpen={primaryAssessIds.size > 0 && !assessTipDismissed}
+                onDismissAssessOnboarding={() => setAssessTipDismissed(true)}
               />
               <LearningPathCard courses={ADMIN_COURSES} skeleton={!ready} />
             </div>

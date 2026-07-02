@@ -43,6 +43,8 @@ export default function SkillsProfilePage() {
   const [assessSkill, setAssessSkill] = useState<ProfileSkill | null>(null)
   const [proficiencySkill, setProficiencySkill] = useState<ProfileSkill | null>(null)
   const [roleModalOpen, setRoleModalOpen] = useState(false)
+  // "Make it official" assessment nudge — dismissed once via "Got it".
+  const [assessTipDismissed, setAssessTipDismissed] = useState(false)
 
   // Filters.
   const [topics, setTopics] = useState<Set<string>>(new Set())
@@ -63,6 +65,19 @@ export default function SkillsProfilePage() {
     if (sources.size && !sources.has(state[s.id]?.source ?? s.source)) return false
     return true
   })
+
+  // Skills that reached target via self-report (not yet verified) → Assess button
+  // turns primary + a one-time "make it official" tooltip until acknowledged.
+  const bandIdx = (v: number) => Math.min(Math.floor(v / 50), 3)
+  const primaryAssessIds = new Set(
+    skills
+      .filter((s) => {
+        const view = state[s.id] ?? { source: s.source, value: s.current }
+        return view.source === 'self-reported' && bandIdx(view.value) >= bandIdx(s.target)
+      })
+      .map((s) => s.id),
+  )
+  const visiblePrimaryExists = visibleSkills.some((s) => primaryAssessIds.has(s.id))
 
   // ── Assess / Retake ──
   const onAssess = (skill: ProfileSkill) => {
@@ -182,7 +197,15 @@ export default function SkillsProfilePage() {
 
             {/* Chart */}
             {visibleSkills.length > 0 ? (
-              <SkillsProfileChart skills={visibleSkills} state={state} celebrateId={celebrateId} onAssess={onAssess} />
+              <SkillsProfileChart
+                skills={visibleSkills}
+                state={state}
+                celebrateId={celebrateId}
+                onAssess={onAssess}
+                primaryIds={primaryAssessIds}
+                onboardingOpen={visiblePrimaryExists && !assessTipDismissed}
+                onDismissOnboarding={() => setAssessTipDismissed(true)}
+              />
             ) : (
               <div className="flex flex-col items-center gap-xs rounded-lg border border-line-subdued py-2xl text-center">
                 <p className="text-md font-bold text-ink">No skills match your filters</p>

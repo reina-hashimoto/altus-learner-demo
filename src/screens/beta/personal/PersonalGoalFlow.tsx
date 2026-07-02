@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { ChevronDown, Check, History, Flag, CalendarDays, Clock, User, SlidersHorizontal, ListVideo } from 'lucide-react'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
+import { ChevronDown, Flag, CalendarDays, Clock, User, SlidersHorizontal, ListVideo } from 'lucide-react'
 import { UBHeader } from '@/components/shell/UBHeader'
 import { LeftRail } from '@/components/shell/LeftRail'
+import { CongratsCard } from '@/features/goal/CongratsCard'
 import { UdemyIcon } from '@/components/icons/UdemyIcon'
 import { SkillsCard } from '@/features/goal/SkillsCard'
 import { LearningPathCard } from '@/features/goal/LearningPathCard'
 import { InfoModal } from '@/features/goal/InfoModal'
 import { AssessmentModal } from '@/features/goal/AssessmentModal'
 import { AltusPanel, type AltusMessage, type AltusView, type GoalReview } from '@/features/goal/altus/AltusPanel'
+import { ArchiveSection } from '@/features/goal/ArchiveSection'
 import type { ProficiencySelections } from '@/features/goal/SkillProficiencyForm'
 import type { Skill, Course } from '@/data/goal'
 import { cn } from '@/components/ui/utils'
@@ -41,7 +43,7 @@ const LEVEL_NAMES = ['Foundational', 'Intermediate', 'Established', 'Advanced']
 const GLOW_MS = 4000
 const BUILD_MS = 3000 // learning-path loading bar duration
 const PANEL_WIDE = 680
-const PANEL_MIN = 480
+const PANEL_MIN = 500
 const PANEL_MAX = 760
 
 const MIN_WEEKLY_MINUTES = 30
@@ -166,10 +168,14 @@ function parseDeadline(text: string): { date: Date | null; realistic: boolean } 
 
 export default function PersonalGoalFlow() {
   const { flowId } = useParams()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  // A goal passed from the Learning goals chat entry seeds the flow and skips setup.
+  const seededGoal = (searchParams.get('goal') ?? '').trim()
 
-  const [screen, setScreen] = useState<'setup' | 'detail'>('setup')
+  const [screen, setScreen] = useState<'setup' | 'detail'>(seededGoal ? 'detail' : 'setup')
   const [stage, setStage] = useState<Stage>('intro')
-  const [goalText, setGoalText] = useState('')
+  const [goalText, setGoalText] = useState(seededGoal)
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
 
@@ -666,7 +672,9 @@ export default function PersonalGoalFlow() {
               />
 
               {allComplete && remainingVideoCount === 0 ? (
-                <CongratsCard />
+                <CongratsCard
+                  onSeeGoals={() => navigate('/learning-goals', { state: { completedGoalId: 'personal-e2e' } })}
+                />
               ) : (
                 <LearningPathCard
                   courses={pathReady ? displayedCourses : []}
@@ -841,77 +849,3 @@ function EditMenu({ onSelect, disabled }: { onSelect: (label: string) => void; d
   )
 }
 
-/**
- * Collapsible archive of courses removed from the active path (e.g. once their
- * skill is verified). Default closed; sits below the path / congrats card.
- */
-function ArchiveSection({
-  courses,
-  open,
-  onToggle,
-  onCourseClick,
-}: {
-  courses: Course[]
-  open: boolean
-  onToggle: () => void
-  onCourseClick: (course: Course) => void
-}) {
-  return (
-    <div className="-mt-sm flex flex-col items-end gap-xs">
-      <button
-        onClick={onToggle}
-        className="flex items-center gap-xs px-xs py-xxs text-sm font-medium text-ink-subdued transition-colors hover:text-ink"
-      >
-        <History className="size-4" strokeWidth={1.75} />
-        Show previously studied courses ({courses.length})
-        <ChevronDown className={cn('size-4 transition-transform', open ? 'rotate-180' : '')} strokeWidth={2} />
-      </button>
-
-      {open && (
-        <section className="w-full animate-altus-fadein rounded-lg bg-surface p-lg">
-          <h2 className="mb-md text-lg font-medium text-ink">Previously studied</h2>
-          <div className="flex flex-col gap-sm">
-            {courses.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => onCourseClick(c)}
-                className="flex items-center gap-sm rounded-lg border border-line-subdued p-sm text-left transition-shadow hover:shadow-[var(--box-shadow-100)]"
-              >
-                <img src={c.image} alt="" className="size-12 shrink-0 rounded-md object-cover" />
-                <div className="flex min-w-0 flex-1 flex-col gap-xxs">
-                  <h3 className="truncate text-md font-medium leading-tight text-ink">{c.title}</h3>
-                  <p className="truncate text-xs text-ink-subdued">
-                    {c.metaText ?? `Course • ${c.lectures} lectures • ${c.duration}${c.instructor ? ` • ${c.instructor}` : ''}`}
-                  </p>
-                  <span className="inline-flex w-fit items-center rounded-sm bg-[var(--color-purple-150)] px-xs py-xxs text-xs font-bold text-ink">
-                    {c.skillTag}
-                  </span>
-                </div>
-                <span
-                  className="flex shrink-0 items-center gap-xxs rounded-sm px-xs py-xxs text-xs font-bold text-white"
-                  style={{ background: '#0e8a5f' }}
-                >
-                  <Check className="size-3" strokeWidth={3} /> Verified
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
-  )
-}
-
-/** Shown in the learning-path slot once every skill has reached target. */
-function CongratsCard() {
-  return (
-    <section className="flex flex-col items-center gap-sm rounded-lg bg-surface p-xl text-center">
-      <span className="text-4xl">🎉</span>
-      <h2 className="text-xl font-bold text-ink">Goal complete — congratulations!</h2>
-      <p className="max-w-[420px] text-sm text-ink-subdued">
-        You've reached the target proficiency for every skill in this goal. Your learning path is all done. Keep the
-        momentum going by setting a new goal or exploring advanced topics.
-      </p>
-    </section>
-  )
-}

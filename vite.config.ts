@@ -11,4 +11,13 @@ export default defineConfig({
     },
   },
   assetsInclude: ['**/*.svg'],
+  server: {
+    watch: {
+      // A background process rewrites .claude/launch.json frequently; Vite treats
+      // any change under the project root as a full page reload, which was resetting
+      // the in-progress chat state mid-typing. Ignore non-source dirs so only real
+      // source edits trigger HMR.
+      ignored: ['**/.claude/**', '**/.git/**', '**/node_modules/**'],
+    },
+  },
 })

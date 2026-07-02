@@ -43,10 +43,10 @@ export function SkillProficiencyForm({ skills, values, onChange, onSubmit, onOpe
                     key={level}
                     onClick={() => onChange(skill.id, selected ? null : idx)}
                     className={cn(
-                      'rounded-sm px-xs py-xs text-xs font-bold transition-colors',
+                      'rounded-sm px-xs py-xs text-xs transition-colors',
                       selected
-                        ? 'bg-brand text-on-brand'
-                        : 'bg-surface-pale text-ink hover:bg-surface-midtone',
+                        ? 'bg-brand font-bold text-on-brand'
+                        : 'bg-surface-pale font-normal text-ink hover:bg-surface-midtone',
                     )}
                   >
                     {level}

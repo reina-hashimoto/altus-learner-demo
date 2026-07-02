@@ -42,7 +42,11 @@ export interface GoalReview {
   role: string
   targetDate: string
   weeklyTime: string
-  skills: { name: string; level: string; source: string }[]
+  /** Optional — the assigned goal title (Custom flow shows it in the summary). */
+  goal?: string
+  /** Optional — a focus area the learner chose in chat (Custom flow). */
+  focus?: string
+  skills: { name: string; level: string; source: string; target?: string }[]
 }
 
 export type AltusView = 'altus' | 'your-week'
@@ -426,6 +430,7 @@ function ReviewGoalCard({
   loading?: boolean
   onConfirm?: () => void
 }) {
+  const showTarget = review.skills.some((s) => s.target)
   return (
     <section className="overflow-hidden rounded-lg border border-line-subdued bg-surface">
       {/* Header */}
@@ -446,7 +451,9 @@ function ReviewGoalCard({
             </div>
           ) : (
             <>
+              {review.goal && <FieldRow label="Goal" value={review.goal} />}
               <FieldRow label="Current role" value={review.role} />
+              {review.focus && <FieldRow label="Focus area" value={review.focus} />}
               <FieldRow label="Target date" value={review.targetDate} />
               <FieldRow label="Weekly study time" value={review.weeklyTime} />
               {/* Target skills — table for clear, aligned scanning */}
@@ -455,20 +462,22 @@ function ReviewGoalCard({
                   Target skills ({review.skills.length})
                 </p>
                 <div className="overflow-hidden rounded-md border border-line-subdued bg-surface">
-                  <table className="w-full border-collapse text-xs">
+                  <table className="w-full table-fixed border-collapse text-xs">
                     <thead>
                       <tr className="bg-surface-pale text-left">
-                        <th className="px-sm py-xs font-medium text-ink-subdued">Skill</th>
-                        <th className="px-sm py-xs font-medium text-ink-subdued">Current level</th>
-                        <th className="px-sm py-xs font-medium text-ink-subdued">Source</th>
+                        <th className="px-xs py-xs font-medium text-ink-subdued">Skill</th>
+                        <th className="px-xs py-xs font-medium text-ink-subdued">Current</th>
+                        {showTarget && <th className="px-xs py-xs font-medium text-ink-subdued">Target</th>}
+                        <th className="px-xs py-xs font-medium text-ink-subdued">Source</th>
                       </tr>
                     </thead>
                     <tbody>
                       {review.skills.map((s) => (
                         <tr key={s.name} className="border-t border-line-subdued align-top">
-                          <td className="px-sm py-xs font-medium leading-tight text-ink">{s.name}</td>
-                          <td className="whitespace-nowrap px-sm py-xs text-ink-subdued">{s.level}</td>
-                          <td className="whitespace-nowrap px-sm py-xs text-ink-subdued">{s.source}</td>
+                          <td className="px-xs py-xs font-medium leading-tight text-ink">{s.name}</td>
+                          <td className="px-xs py-xs leading-tight text-ink-subdued">{s.level}</td>
+                          {showTarget && <td className="px-xs py-xs leading-tight text-ink-subdued">{s.target ?? '—'}</td>}
+                          <td className="px-xs py-xs leading-tight text-ink-subdued">{s.source}</td>
                         </tr>
                       ))}
                     </tbody>

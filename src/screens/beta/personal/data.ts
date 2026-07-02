@@ -70,7 +70,7 @@ export const PERSONAL_COURSES: Course[] = [
     title: 'AI Design Thinking : the fundamentals',
     lectures: 14,
     duration: '2h',
-    instructor: 'Morten Rand-Hendriksen',
+    instructor: 'Mei Chen',
     skillTag: 'AI-powered Design Thinking',
     progress: 0,
     image: illusDesignThinking,
@@ -121,7 +121,7 @@ export const PERSONAL_COURSES: Course[] = [
 
 /** Instructor shown in the video player, keyed by course id. */
 export const COURSE_INSTRUCTOR: Record<string, string> = {
-  'ai-design-thinking-fundamentals': 'Morten Rand-Hendriksen',
+  'ai-design-thinking-fundamentals': 'Mei Chen',
   'vibe-coding-ux-ui': 'Daniel Walter Scott',
   'gen-ai-beginners': 'Anton Voroniuk',
   'ai-design-thinking-alt': 'Vandana Verma',

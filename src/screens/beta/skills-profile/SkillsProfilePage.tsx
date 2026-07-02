@@ -22,6 +22,8 @@ import {
   GOAL_OPTIONS,
   SOURCE_OPTIONS,
   PROFILE_ROLE_DEFAULT,
+  roleSeniorityBump,
+  clampTarget,
   type ProfileSkill,
 } from './data'
 
@@ -48,10 +50,14 @@ export default function SkillsProfilePage() {
   const [sources, setSources] = useState<Set<string>>(new Set()) // stores SkillSource values
   const [openFilter, setOpenFilter] = useState<'topic' | 'goal' | 'type' | null>(null)
 
-  const anyExceeded = SALES_SKILLS.some((s) => state[s.id]?.exceeded)
+  // Target proficiency rises with role seniority (Senior/Staff/Principal/…).
+  const targetBump = roleSeniorityBump(role)
+  const skills = SALES_SKILLS.map((s) => ({ ...s, target: clampTarget(s.target + targetBump) }))
+
+  const anyExceeded = skills.some((s) => state[s.id]?.exceeded)
 
   // Filter: AND across facets, OR within. Assessment-type filters by CURRENT source.
-  const visibleSkills = SALES_SKILLS.filter((s) => {
+  const visibleSkills = skills.filter((s) => {
     if (topics.size && !topics.has(s.topic)) return false
     if (goals.size && !goals.has(s.goal)) return false
     if (sources.size && !sources.has(state[s.id]?.source ?? s.source)) return false
@@ -114,7 +120,7 @@ export default function SkillsProfilePage() {
                 <button
                   onClick={() => setRoleModalOpen(true)}
                   aria-label="Update role"
-                  className="ml-xxs text-ink-subdued hover:text-brand"
+                  className="ml-xxs cursor-pointer text-ink-subdued hover:text-brand"
                 >
                   <Pencil className="size-4" strokeWidth={2} />
                 </button>

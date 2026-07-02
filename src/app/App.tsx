@@ -21,8 +21,11 @@ export default function App() {
   return (
     <BrowserRouter basename={BASENAME}>
       <Routes>
-        <Route path="/" element={<FlowIndex />} />
+        <Route path="/" element={<LearningGoalsPage />} />
         <Route path="/learning-goals" element={<LearningGoalsPage />} />
+        {/* Full list of prototype scenario variants — reachable only via the
+            "View all scenario variants" link at the bottom of Learning goals. */}
+        <Route path="/scenarios" element={<FlowIndex />} />
         <Route path="/skills-profile" element={<SkillsProfilePage />} />
         <Route path="/:flowId/player" element={<PlayerPage />} />
         <Route path="/:flowId" element={<FlowRoute />} />

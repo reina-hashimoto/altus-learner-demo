@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 
-export type Persona = 'product-manager' | 'data-scientist'
+export type Persona = 'product-manager' | 'data-scientist' | 'product-designer'
 
 export type FlowStatus = 'ready' | 'planned'
 
@@ -37,4 +37,5 @@ export interface Flow {
 export const PERSONA_LABEL: Record<Persona, string> = {
   'product-manager': 'Product Manager',
   'data-scientist': 'Data Scientist',
+  'product-designer': 'Product Designer',
 }

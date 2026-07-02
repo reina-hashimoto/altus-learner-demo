@@ -26,7 +26,9 @@ export default function FlowIndex() {
   return (
     <div className="min-h-screen bg-surface-pale text-ink">
       <header className="flex h-[72px] items-center border-b border-line-subdued bg-surface px-lg">
-        <img src={udemyBusinessLogo} alt="Udemy Business" className="h-[34px] w-auto" />
+        <Link to="/" aria-label="Udemy Business — back to home">
+          <img src={udemyBusinessLogo} alt="Udemy Business" className="h-[34px] w-auto" />
+        </Link>
       </header>
 
       <main className="mx-auto max-w-[920px] px-md py-xl">

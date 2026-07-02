@@ -2,6 +2,8 @@
 import coursePrompt from '@/assets/course-prompt-engineering.png'
 import courseHallucination from '@/assets/course-hallucination.png'
 import courseResponsible from '@/assets/course-responsible-ai.jpg'
+import thumbRoleplay from '@/assets/thumb-roleplay.png'
+import thumbLab from '@/assets/thumb-lab.png'
 
 export const PROFICIENCY_LEVELS = ['Foundational', 'Intermediate', 'Established', 'Advanced'] as const
 export type ProficiencyLevel = (typeof PROFICIENCY_LEVELS)[number]
@@ -67,11 +69,63 @@ export const COURSES_AI = courses([
   { id: 'responsible-ai', title: 'Responsible AI: Principles, Risk & Governance', lectures: 18, duration: '2h 12m', skillTag: 'Responsible AI Usage', optimized: { lectures: 12, duration: '1h 25m' }, expanded: { lectures: 23, duration: '2h 50m' } },
 ])
 
-// ── Flex extras: Role Play + Hands-on Lab, added only on learner request ────
-export const COURSES_FLEX_EXTRAS: Course[] = courses([
-  { id: 'roleplay-autogen', title: 'Deploy and Scale AI Agents with Microsoft AutoGen', lectures: 0, duration: '', skillTag: 'Evaluating AI Outputs', kind: 'roleplay', metaText: 'Role Play • Gen AI • 1hr - 2hr' },
-  { id: 'lab-rag', title: 'Build and Ship a RAG Pipeline Hands-On', lectures: 0, duration: '', skillTag: 'Prompting AI Effectively', kind: 'lab', metaText: 'Labs • Gen AI • 1hr - 2hr' },
-])
+/** What kind of hands-on practice the learner asked Altus to add to the flex path. */
+export type FlexExtraChoice = 'both' | 'roleplay' | 'lab'
+
+// Title templates — a few phrasings per type so the generated items don't all
+// read identically across skills. Picked by a stable hash of the skill id.
+const ROLEPLAY_TITLES = [
+  (n: string) => `Role Play: ${n} in Real Scenarios`,
+  (n: string) => `Practice ${n} with an AI Partner`,
+  (n: string) => `${n} — Live Role Play Simulation`,
+  (n: string) => `On-the-Job Role Play: ${n}`,
+]
+const LAB_TITLES = [
+  (n: string) => `Hands-On Lab: Build with ${n}`,
+  (n: string) => `${n} in Action — Guided Lab`,
+  (n: string) => `Applied ${n}: Project Lab`,
+  (n: string) => `${n} Workshop: Hands-On Practice`,
+]
+
+/**
+ * Flex: build Role Play / Hands-on Lab extras — one of each requested type per
+ * skill, titled to the skill with some variety (each skill gets a different
+ * phrasing). Thumbnails use the dedicated role-play / lab art. Callers pass only
+ * skills that haven't reached target yet.
+ */
+export function makeFlexExtras(skills: Skill[], choice: FlexExtraChoice): Course[] {
+  const out: Course[] = []
+  skills.forEach((s, i) => {
+    if (choice === 'roleplay' || choice === 'both') {
+      out.push({
+        id: `roleplay-${s.id}`,
+        title: ROLEPLAY_TITLES[i % ROLEPLAY_TITLES.length](s.name),
+        lectures: 0,
+        duration: '',
+        skillTag: s.name,
+        kind: 'roleplay',
+        metaText: 'Role Play • Gen AI • 1hr - 2hr',
+        progress: 0,
+        image: thumbRoleplay,
+      })
+    }
+    if (choice === 'lab' || choice === 'both') {
+      out.push({
+        id: `lab-${s.id}`,
+        // Offset so a skill's lab phrasing differs from its role-play phrasing.
+        title: LAB_TITLES[(i + 1) % LAB_TITLES.length](s.name),
+        lectures: 0,
+        duration: '',
+        skillTag: s.name,
+        kind: 'lab',
+        metaText: 'Labs • Gen AI • 1hr - 2hr',
+        progress: 0,
+        image: thumbLab,
+      })
+    }
+  })
+  return out
+}
 
 // ── Open: Altus-built PM path (generic skills) ────────────────────────────
 export const COURSES_OPEN_PM = courses([
@@ -85,6 +139,20 @@ export const COURSES_CUSTOM_PM = courses([
   { id: 'build-ai-native', title: 'Building AI-Native Products: From Idea to Launch', lectures: 24, duration: '1h 37m', skillTag: 'AI-Native Product Development' },
   { id: 'rapid-proto', title: 'Rapid Product Prototyping with AI and Vibe Coding', lectures: 18, duration: '2h 03m', skillTag: 'AI-Powered Prototyping' },
   { id: 'kpi-dashboards', title: 'Creating Product KPI Dashboards with AI', lectures: 19, duration: '1h 58m', skillTag: 'AI-Assisted Product Analytics' },
+])
+
+// ── Custom-scenario Product Designer skills (mapped by role) ──────────────
+export const SKILLS_CUSTOM_DESIGN: Skill[] = [
+  { id: 'ai-native-ux', name: 'Designing AI-Native Experiences', description: 'Design intuitive product experiences where AI is a core part of the interface and user flow.', estimated: 40, selfReported: 78, target: 130 },
+  { id: 'ai-proto-design', name: 'AI-Powered Prototyping', description: 'Use generative AI and vibe-coding tools to rapidly prototype and test design concepts.', estimated: 40, selfReported: 45, target: 130 },
+  { id: 'ai-visual', name: 'Generative AI for Visual Design', description: 'Apply generative AI to create visuals, design systems, and content at scale.', estimated: 40, selfReported: 78, target: 130 },
+]
+
+// ── Custom: Altus-built Product Designer path (one course per skill) ───────
+export const COURSES_CUSTOM_DESIGN = courses([
+  { id: 'design-ai-native', title: 'Designing AI-Native Experiences: A UX Playbook', lectures: 21, duration: '1h 42m', skillTag: 'Designing AI-Native Experiences' },
+  { id: 'ux-proto-vibe', title: 'Rapid UX Prototyping with AI and Vibe Coding', lectures: 18, duration: '2h 03m', skillTag: 'AI-Powered Prototyping' },
+  { id: 'genai-visual', title: 'Generative AI for Visual & Product Design', lectures: 20, duration: '1h 55m', skillTag: 'Generative AI for Visual Design' },
 ])
 
 // ── Custom-scenario DS skills (Altus-defined) ─────────────────────────────

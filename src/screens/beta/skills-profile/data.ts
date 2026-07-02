@@ -67,10 +67,10 @@ export const SALES_SKILLS: ProfileSkill[] = [
     description: 'Use AI to draft, personalize, and refine outreach and customer conversations.',
     source: 'self-reported',
     current: 75,
-    target: 130,
+    target: 160, // Advanced
     topic: 'Business (soft skills)',
     goal: 'Upskilling in generative AI',
-    assessScore: 142, // exceeds target → green + sparkle
+    assessScore: 165, // exceeds target → green + sparkle
   },
   {
     id: 'market-analysis',
@@ -78,10 +78,10 @@ export const SALES_SKILLS: ProfileSkill[] = [
     description: 'Analyze market trends and opportunities with AI-assisted research tools.',
     source: 'self-reported',
     current: 25,
-    target: 120,
+    target: 85, // Developing
     topic: 'Data & Analytics',
     goal: 'AI benchmark fluency',
-    assessScore: 95, // below target → Udemy Verified purple
+    assessScore: 72, // below target → Udemy Verified purple
   },
   {
     id: 'sales-content',
@@ -100,10 +100,10 @@ export const SALES_SKILLS: ProfileSkill[] = [
     description: 'Interpret pipeline and performance data to guide decisions with AI support.',
     source: 'self-reported',
     current: 25,
-    target: 90,
+    target: 70, // Developing
     topic: 'Data & Analytics',
     goal: 'Build AI expertise',
-    assessScore: 78, // below target → purple
+    assessScore: 60, // below target → purple
   },
   {
     id: 'crm-optimization',
@@ -122,10 +122,10 @@ export const SALES_SKILLS: ProfileSkill[] = [
     description: 'Group and prioritize customers using AI-driven segmentation techniques.',
     source: 'verified',
     current: 108,
-    target: 130,
+    target: 155, // Advanced
     topic: 'Data & Analytics',
     goal: 'Build AI expertise',
-    assessScore: 145, // retake exceeds → green + sparkle
+    assessScore: 168, // retake exceeds → green + sparkle
   },
   {
     id: 'ai-prompting-sales',
@@ -133,7 +133,7 @@ export const SALES_SKILLS: ProfileSkill[] = [
     description: 'Craft effective prompts to get reliable, on-brand outputs for sales tasks.',
     source: 'self-reported',
     current: 25,
-    target: 130,
+    target: 115, // Established
     topic: 'Business (role-based)',
     goal: 'Upskilling in generative AI',
     assessScore: 138, // exceeds → green + sparkle
@@ -144,7 +144,7 @@ export const SALES_SKILLS: ProfileSkill[] = [
     description: 'Use AI to quickly turn ideas and prompts into UI concepts and interactive prototypes.',
     source: 'estimated',
     current: 130,
-    target: 130,
+    target: 150, // Advanced
     topic: 'Design',
     goal: 'Upskilling in Generative AI',
     // no assessScore → estimated skills open the Set-proficiency modal
@@ -155,7 +155,7 @@ export const SALES_SKILLS: ProfileSkill[] = [
     description: 'Predict revenue and pipeline outcomes with AI-assisted forecasting models.',
     source: 'verified',
     current: 120,
-    target: 140,
+    target: 165, // Advanced
     topic: 'Data & Analytics',
     goal: 'Build AI expertise',
     assessScore: 128, // retake below target → purple
@@ -166,7 +166,7 @@ export const SALES_SKILLS: ProfileSkill[] = [
     description: 'Assess competitors and positioning using AI-gathered market intelligence.',
     source: 'self-reported',
     current: 25,
-    target: 130,
+    target: 90, // Developing
     topic: 'Business (role-based)',
     goal: 'Upskilling in AI',
     assessScore: 140, // exceeds → green + sparkle
@@ -177,11 +177,31 @@ export const SALES_SKILLS: ProfileSkill[] = [
     description: 'Structure and deliver compelling sales presentations with AI assistance.',
     source: 'self-reported',
     current: 25,
-    target: 130,
+    target: 95, // Developing
     topic: 'Business (soft skills)',
     goal: 'Upskilling in generative AI',
     assessScore: 85, // below target → purple
   },
 ]
 
-export const PROFILE_ROLE_DEFAULT = 'Sales Representative'
+export const PROFILE_ROLE_DEFAULT = 'Product Manager'
+
+/**
+ * Rough upward bump (0–200 scale) applied to every skill's target proficiency
+ * when the role indicates a more senior level. Base/IC roles → 0; the bar rises
+ * with seniority so a Senior/Staff/Principal/Director sees a higher target.
+ */
+export function roleSeniorityBump(role: string): number {
+  const r = role.toLowerCase()
+  if (/\b(chief|cto|ceo|cpo|coo|svp|vp|vice president|head of|director)\b/.test(r)) return 50
+  if (/\bprincipal\b/.test(r)) return 40
+  if (/\bstaff\b/.test(r)) return 30
+  if (/\b(senior|sr\.?|lead)\b/.test(r)) return 20
+  if (/\b(junior|jr\.?|associate|entry|intern)\b/.test(r)) return -15
+  return 0
+}
+
+/** Clamp an adjusted target so it stays on-scale and inside a sensible band. */
+export function clampTarget(v: number): number {
+  return Math.min(Math.max(v, 40), 195)
+}

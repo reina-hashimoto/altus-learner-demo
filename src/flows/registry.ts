@@ -1,6 +1,7 @@
 import GoalPage from '@/screens/GoalPage'
 import AdminGoalFlow from '@/screens/beta/admin/AdminGoalFlow'
 import PersonalGoalFlow from '@/screens/beta/personal/PersonalGoalFlow'
+import CustomGoalFlow from '@/screens/beta/custom/CustomGoalFlow'
 import type { Flow } from './types'
 
 /**
@@ -50,8 +51,31 @@ export const flows: Flow[] = [
   flow('open-pm', 'open', '4) Open', 'No learning path exists yet; Altus builds one from the goal and the learner’s skills.', 'product-manager', ['7021:41705', '7021:43978', '7021:48914', '7021:49943', '7021:50972', '7021:52133']),
   flow('open-ds', 'open', '4) Open', 'No learning path exists yet; Altus builds one from the goal and the learner’s skills.', 'data-scientist', ['7021:53026', '7021:53571', '7021:54116', '7021:54661', '7021:55206', '7021:55712']),
 
-  flow('custom-pm', 'custom', '5) Custom', 'Neither skills nor a path are predefined; Altus defines both with the learner.', 'product-manager', ['7021:58693', '7036:97888', '7036:98754', '7036:99722', '7036:100710', '7036:101746']),
-  flow('custom-ds', 'custom', '5) Custom', 'Neither skills nor a path are predefined; Altus defines both with the learner.', 'data-scientist', ['7036:103030', '7036:103586', '7036:104132', '7036:104626', '7036:104986', '7036:105441']),
+  // Custom: goal, role→skills mapping, and target proficiency are pre-assigned by
+  // the admin; the learner confirms role level + focus, then self-reports, then the
+  // path is generated. Same flow for two role variants (PM / Product Designer).
+  {
+    id: 'custom-pm',
+    tab: 'post-beta',
+    status: 'ready',
+    scenarioId: 'custom',
+    scenario: '5) Custom',
+    scenarioBlurb: 'The goal, role→skills mapping, and target proficiency are pre-assigned; the learner confirms the details, then Altus generates the path.',
+    persona: 'product-manager',
+    component: CustomGoalFlow,
+    figmaNodes: ['7021:58693', '7036:97888', '7036:98754', '7036:99722', '7036:100710', '7036:101746'],
+  },
+  {
+    id: 'custom-design',
+    tab: 'post-beta',
+    status: 'ready',
+    scenarioId: 'custom',
+    scenario: '5) Custom',
+    scenarioBlurb: 'The goal, role→skills mapping, and target proficiency are pre-assigned; the learner confirms the details, then Altus generates the path.',
+    persona: 'product-designer',
+    component: CustomGoalFlow,
+    figmaNodes: ['7036:103030', '7036:103586', '7036:104132', '7036:104626', '7036:104986', '7036:105441'],
+  },
 ]
 
 export const defaultFlowId = 'fixed-pm'

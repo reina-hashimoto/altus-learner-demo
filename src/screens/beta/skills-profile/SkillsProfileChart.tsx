@@ -6,7 +6,7 @@
  *  - verified & score ≥ target → green + sparkle
  *  - verified & score < target → Udemy-Verified dark purple (animation only)
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SCALE_MAX, TICKS, BANDS, type ProfileSkill, type SkillSource } from './data'
@@ -42,20 +42,53 @@ interface SkillsProfileChartProps {
 export function SkillsProfileChart({ skills, state, celebrateId, onAssess }: SkillsProfileChartProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
+  // Hide the proficiency-band labels once the axis is too narrow — right before
+  // any band label would collide with a score number. Score numbers stay.
+  // (Same behaviour as the goal-page "Skills to develop" chart.)
+  const axisRef = useRef<HTMLDivElement>(null)
+  const [showBands, setShowBands] = useState(true)
+  useEffect(() => {
+    const el = axisRef.current
+    if (!el) return
+    const check = () => {
+      const ticks = [...el.querySelectorAll<HTMLElement>('[data-tick]')]
+      const bands = [...el.querySelectorAll<HTMLElement>('[data-band]')]
+      if (!ticks.length || !bands.length) return
+      const PAD = 4 // px breathing room before a real overlap
+      const overlap = bands.some((b) => {
+        const br = b.getBoundingClientRect()
+        return ticks.some((t) => {
+          const tr = t.getBoundingClientRect()
+          return br.left < tr.right + PAD && br.right + PAD > tr.left
+        })
+      })
+      setShowBands(!overlap)
+    }
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [skills.length])
+
   return (
     <div className="flex flex-col gap-md">
       {/* Filters + legend row are rendered by the page; here we render axis + rows */}
       {/* axis */}
       <div className="grid grid-cols-[220px_1fr_120px] items-end gap-sm">
         <div />
-        <div className="relative h-5 text-xxs text-ink-subdued">
+        <div ref={axisRef} className="relative h-5 text-xxs text-ink-subdued">
           {TICKS.map((t) => (
-            <span key={t} className="absolute top-0 -translate-x-1/2 tabular-nums" style={{ left: pct(t) }}>
+            <span key={t} data-tick className="absolute top-0 -translate-x-1/2 tabular-nums" style={{ left: pct(t) }}>
               {t}
             </span>
           ))}
           {BANDS.map((b, i) => (
-            <span key={b} className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap" style={{ left: pct(25 + i * 50) }}>
+            <span
+              key={b}
+              data-band
+              className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap transition-opacity"
+              style={{ left: pct(25 + i * 50), visibility: showBands ? 'visible' : 'hidden' }}
+            >
               {b}
             </span>
           ))}
@@ -122,14 +155,14 @@ export function SkillsProfileChart({ skills, state, celebrateId, onAssess }: Ski
             const view = state[s.id] ?? { source: s.source, value: s.current }
             const verified = view.source === 'verified'
             return (
-              <div key={s.id} className="flex h-9 items-center justify-end">
+              <div key={s.id} className="flex h-9 items-center justify-center">
                 {verified ? (
-                  <Button udStyle="ghost" size="xsmall" onClick={() => onAssess(s)} className="gap-xs">
+                  <Button udStyle="ghost" size="xsmall" onClick={() => onAssess(s)} className="w-24 justify-center gap-xs">
                     Retake
                     <RotateCw className="size-3.5" strokeWidth={2} />
                   </Button>
                 ) : (
-                  <Button udStyle="secondary" size="xsmall" onClick={() => onAssess(s)}>
+                  <Button udStyle="secondary" size="xsmall" onClick={() => onAssess(s)} className="w-24 justify-center">
                     Assess
                   </Button>
                 )}

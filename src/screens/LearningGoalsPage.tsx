@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronRight, Sparkles, Plus, History, ChevronDown } from 'lucide-react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { ChevronRight, Sparkles, Plus, History, ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/components/ui/utils'
 import { UBHeader } from '@/components/shell/UBHeader'
-import { COURSES_AI, COURSES_OPEN_PM, COURSES_CUSTOM_PM, type Course } from '@/data/goal'
+import { COURSES_AI, COURSES_OPEN_PM, COURSES_CUSTOM_PM, COURSES_CUSTOM_DESIGN, type Course } from '@/data/goal'
 import { PERSONAL_COURSES, COURSE_INSTRUCTOR } from '@/screens/beta/personal/data'
 import { CollapsibleNav } from '@/screens/beta/skills-profile/CollapsibleNav'
 
@@ -46,7 +46,7 @@ const ACTIVE_GOALS: GoalDef[] = [
   {
     id: 'custom-pm',
     flowId: 'custom-pm',
-    category: '4. Custom',
+    category: 'Custom-PM',
     title: 'Upskilling in Generative AI',
     deadline: 'August, 2026',
     type: 'org',
@@ -55,6 +55,20 @@ const ACTIVE_GOALS: GoalDef[] = [
     total: 3,
     course: COURSES_CUSTOM_PM[0],
     courseProgress: 30,
+    instructor: 'Dr. Diana McKinsey',
+  },
+  {
+    id: 'custom-design',
+    flowId: 'custom-design',
+    category: 'Custom-Design',
+    title: 'Upskilling in Generative AI',
+    deadline: 'August, 2026',
+    type: 'org',
+    skills: ['Designing AI-Native Experiences', 'AI-Powered Prototyping', 'Generative AI for Visual Design'],
+    completed: 0,
+    total: 3,
+    course: COURSES_CUSTOM_DESIGN[0],
+    courseProgress: 15,
     instructor: 'Dr. Diana McKinsey',
   },
   {
@@ -139,8 +153,22 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
   )
 }
 
+/** Green completion check shown in place of the progress ring once the goal is done. */
+function CompleteCheck() {
+  return (
+    <span className="flex size-12 shrink-0 items-center justify-center">
+      <span
+        className="flex size-9 items-center justify-center rounded-round text-white shadow-sm"
+        style={{ background: '#0e8a5f' }}
+      >
+        <Check className="size-5" strokeWidth={3} />
+      </span>
+    </span>
+  )
+}
+
 /** Single goal card matching the Figma LectureProductCard structure. */
-function GoalCard({ goal }: { goal: GoalDef }) {
+function GoalCard({ goal, complete = false }: { goal: GoalDef; complete?: boolean }) {
   const isOrg = goal.type === 'org'
 
   const courseMeta = `${goal.course.lectures} lectures · ${goal.course.duration}`
@@ -171,7 +199,7 @@ function GoalCard({ goal }: { goal: GoalDef }) {
     <div className="flex flex-col gap-md rounded-xl bg-surface p-md">
       {/* Goal header row */}
       <div className="flex items-start gap-md">
-        <ProgressRing completed={goal.completed} total={goal.total} />
+        {complete ? <CompleteCheck /> : <ProgressRing completed={goal.completed} total={goal.total} />}
         <div className="flex flex-1 flex-col gap-xs">
           <div>
             <h3 className="text-lg font-medium leading-snug text-ink">
@@ -259,6 +287,19 @@ export default function LearningGoalsPage() {
   const [draft, setDraft] = useState('')
   const [navOpen, setNavOpen] = useState(true)
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const navigate = useNavigate()
+  // Set only when arriving via the "See learning goals" button on the goal-complete
+  // card — that goal's card then shows a green check instead of its progress ring.
+  const location = useLocation()
+  const completedGoalId = (location.state as { completedGoalId?: string } | null)?.completedGoalId
+
+  // Submitting a goal from the chat entry kicks off the Personal goal flow,
+  // seeding it with the entered goal so it skips its own setup screen.
+  const submitGoal = () => {
+    const goal = draft.trim()
+    if (!goal) return
+    navigate(`/personal-goal-e2e?goal=${encodeURIComponent(goal)}`)
+  }
 
   return (
     <div className="flex h-screen flex-col bg-surface text-ink">
@@ -277,6 +318,12 @@ export default function LearningGoalsPage() {
                 <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      submitGoal()
+                    }
+                  }}
                   placeholder="Create a new goal. Tell me what you want to improve or achieve..."
                   rows={2}
                   className="w-full resize-none bg-transparent text-sm leading-relaxed text-ink outline-none placeholder:text-ink-subdued"
@@ -290,6 +337,8 @@ export default function LearningGoalsPage() {
                   <Plus className="size-4" strokeWidth={2} />
                 </button>
                 <button
+                  onClick={submitGoal}
+                  aria-label="Create goal"
                   className="flex size-9 shrink-0 items-center justify-center rounded-round bg-brand text-on-brand hover:bg-brand-strong disabled:opacity-40"
                   disabled={!draft.trim()}
                 >
@@ -318,7 +367,7 @@ export default function LearningGoalsPage() {
             {/* Goals list */}
             <div className="mt-lg flex flex-col gap-md">
               {ACTIVE_GOALS.map((g) => (
-                <GoalCard key={g.id} goal={g} />
+                <GoalCard key={g.id} goal={g} complete={g.id === completedGoalId} />
               ))}
             </div>
 
@@ -344,7 +393,7 @@ export default function LearningGoalsPage() {
 
             {/* Prototype helper */}
             <p className="mt-xl text-center text-xs text-ink-subdued">
-              <Link to="/" className="hover:underline">View all scenario variants →</Link>
+              <Link to="/scenarios" className="hover:underline">View all scenario variants →</Link>
             </p>
           </div>
         </main>

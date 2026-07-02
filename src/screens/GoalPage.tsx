@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { UBHeader } from '@/components/shell/UBHeader'
 import { LeftRail } from '@/components/shell/LeftRail'
 import { GoalHeader } from '@/features/goal/GoalHeader'
@@ -8,11 +8,14 @@ import { LearningPathCard } from '@/features/goal/LearningPathCard'
 import { InfoModal } from '@/features/goal/InfoModal'
 import { AssessmentModal } from '@/features/goal/AssessmentModal'
 import { AltusPanel, type AltusMessage, type AltusView, type GoalReview } from '@/features/goal/altus/AltusPanel'
+import { ArchiveSection } from '@/features/goal/ArchiveSection'
+import { CongratsCard } from '@/features/goal/CongratsCard'
+import { Confetti } from '@/screens/beta/personal/Confetti'
 import { UdemyIcon } from '@/components/icons/UdemyIcon'
 import type { ProficiencySelections } from '@/features/goal/SkillProficiencyForm'
 import { getFlow, defaultFlowId } from '@/flows/registry'
 import { getFlowConfig, type ChipDef } from '@/flows/config'
-import { SKILLS_CUSTOM_DS, COURSES_CUSTOM_DS, COURSES_FLEX_EXTRAS, GOAL_META, type Skill, type Course } from '@/data/goal'
+import { SKILLS_CUSTOM_DS, COURSES_CUSTOM_DS, makeFlexExtras, type FlexExtraChoice, GOAL_META, type Skill, type Course } from '@/data/goal'
 import { cn } from '@/components/ui/utils'
 
 // 'review' = showing Review Your Goal card, 'confirming' = spinner + brief wait
@@ -23,6 +26,22 @@ const LEVEL_NAMES = ['Foundational', 'Intermediate', 'Established', 'Advanced']
 // How long the course cards glow (spin) while their lecture counts load in.
 // The grey loading bar shows for this whole window; the number updates when it ends.
 const GLOW_MS = 4000
+
+// Per-skill offsets (by chart position) added to a skill's target for the earned
+// assessment score, so verified skills land ABOVE target but at varied points
+// instead of all showing the same default (148).
+const EARNED_OFFSETS = [16, 34, 24, 42, 12, 30]
+function earnedScore(target: number, idx: number): number {
+  return Math.min(target + EARNED_OFFSETS[((idx % EARNED_OFFSETS.length) + EARNED_OFFSETS.length) % EARNED_OFFSETS.length], 196)
+}
+
+// Maps a post-beta flow id to its Learning-goals card id, so the goal-complete
+// CTA can mark the right card done (green check) on return.
+const FLOW_GOAL_CARD_ID: Record<string, string> = {
+  'flex-pm': 'flex',
+  'fixed-pm': 'fixed',
+  'open-pm': 'open',
+}
 
 // ── Review-stage chat helpers ──────────────────────────────────────────────
 
@@ -85,10 +104,31 @@ function reachedTargetMessage(skillNames: string[]): string {
   return `You've already reached the target proficiency for ${list}, so I've removed the related ${plural ? 'courses' : 'course'} from your learning path. To make it official, take the Udemy assessment to verify your level.`
 }
 
+/**
+ * Rough "is this keyboard-mashing / not real words" check, used to tailor the
+ * out-of-scope reply. Treats empty/symbol-only input and long vowel-less latin
+ * runs as gibberish; anything with CJK characters is assumed to be real text.
+ */
+function looksLikeGibberish(text: string): boolean {
+  const meaningful = text.replace(/[^a-zA-Z぀-ヿ一-鿿0-9]/g, '')
+  if (meaningful.length === 0) return true
+  if (/[぀-ヿ一-鿿]/.test(text)) return false
+  const latin = text.toLowerCase().replace(/[^a-z]/g, '')
+  if (latin.length < 4) return false
+  // Real words carry vowels; keyboard-mashing ("asdfghjkl", "qwrtzxcvb") barely does.
+  const vowels = (latin.match(/[aeiou]/g) || []).length
+  return vowels / latin.length < 0.2
+}
+
 export default function GoalPage() {
   const { flowId } = useParams()
+  const navigate = useNavigate()
   const flow = getFlow(flowId) ?? getFlow(defaultFlowId)!
   const config = getFlowConfig(flow.scenarioId ?? 'fixed', flow.persona ?? 'product-manager')
+  // Flex scenario gets the Personal-flow polish: range target-proficiency band,
+  // richer assessment choreography, and a confetti + goal-complete check once every
+  // skill is verified. Other scenarios keep their original behaviour.
+  const isFlex = flow.scenarioId === 'flex'
 
   const introMessages: AltusMessage[] = config.intro.map((text, i) => ({
     id: `intro-${i}`,
@@ -162,8 +202,13 @@ export default function GoalPage() {
   const [assessmentSkill, setAssessmentSkill] = useState<Skill | null>(null)
   // Skills officially verified via a Udemy assessment — bar turns dark green + Retake.
   const [verifiedSkillIds, setVerifiedSkillIds] = useState<Set<string>>(new Set())
+  // Per-skill earned assessment score (0–200), varied above each skill's target.
+  const [verifiedScores, setVerifiedScores] = useState<Record<string, number>>({})
   // Skill to briefly celebrate near its chart row after verification.
   const [celebrateSkillId, setCelebrateSkillId] = useState<string | null>(null)
+  // Full-screen confetti + green completion check, fired once every skill is verified.
+  const [confettiOn, setConfettiOn] = useState(false)
+  const [goalComplete, setGoalComplete] = useState(false)
 
   // Mutable goal review fields — updated via chat in the 'review' stage.
   const [weeklyTime, setWeeklyTime] = useState('1 hour/week')
@@ -174,6 +219,10 @@ export default function GoalPage() {
   const [reviewThinking, setReviewThinking] = useState(false)
   // True after Altus proposes a rounded weekly time, awaiting the user's yes/no.
   const [awaitingRoundConfirm, setAwaitingRoundConfirm] = useState(false)
+  // Flex: true after Altus asks which hands-on practice to add (role play / lab / both).
+  const [awaitingExtrasChoice, setAwaitingExtrasChoice] = useState(false)
+  // Flex: collapsible "previously studied" archive of items dropped once their skill reached target.
+  const [archiveOpen, setArchiveOpen] = useState(false)
 
   const revealSkills = () => {
     setSkillsShimmer(false)
@@ -259,15 +308,26 @@ export default function GoalPage() {
       .filter((c) => (c.kind ?? 'course') === 'course' && reachedSkillIds.has(skillByTag(c.skillTag)?.id ?? ''))
       .map((c) => c.id),
   )
+  // Skills that have met their target — via self-report OR a verified assessment.
+  // Practice (role play / lab) is only recommended for skills NOT yet in this set.
+  const reachedForPracticeIds = new Set<string>([...reachedSkillIds, ...verifiedSkillIds])
 
   const displayedCourses = (() => {
     if (config.optimizeBySkill) {
-      // Keep every course except those fully removed; adjust lectures + append extras.
-      return [...activeCourses.filter((c) => !removedIds.has(c.id)).map(flexAdjustCourse), ...flexExtras]
+      // Keep every course/extra except those fully removed; adjust lectures + append extras.
+      return [
+        ...activeCourses.filter((c) => !removedIds.has(c.id)).map(flexAdjustCourse),
+        ...flexExtras.filter((e) => !removedIds.has(e.id)),
+      ]
     }
     // Other scenarios: mastered skills drop out of the path entirely.
     return activeCourses.filter((c) => !masteredSkillNames.has(c.skillTag))
   })()
+
+  // Flex: items removed because their skill reached target — shown in the archive.
+  const archivedItems = config.optimizeBySkill
+    ? [...activeCourses, ...flexExtras].filter((c) => removedIds.has(c.id))
+    : []
 
   // Reset the flex re-optimization state so a re-submitted self-report rebuilds the
   // path from scratch (dropped courses return, primary Assess buttons revert, etc.).
@@ -287,23 +347,62 @@ export default function GoalPage() {
     setAssessmentSkill(null)
     if (!s) return
     setVerifiedSkillIds((prev) => new Set([...prev, s.id]))
+    // Record the earned score (varied, above target) so the bar isn't a flat 148.
+    setVerifiedScores((prev) => ({
+      ...prev,
+      [s.id]: earnedScore(s.target, Math.max(activeSkills.findIndex((sk) => sk.id === s.id), 0)),
+    }))
     setPrimaryAssessIds((prev) => {
       const next = new Set(prev)
       next.delete(s.id)
       return next
     })
-    const courseIds = activeCourses
-      .filter((c) => (c.kind ?? 'course') === 'course' && c.skillTag === s.name && !removedIds.has(c.id))
+    // A verified skill has met its target, so drop its video course AND any
+    // practice (role play / lab) we'd added for it — no extra work needed.
+    const courseIds = [...activeCourses, ...flexExtras]
+      .filter((c) => c.skillTag === s.name && !removedIds.has(c.id))
       .map((c) => c.id)
-    if (courseIds.length) {
-      setRemovingIds(new Set(courseIds))
-      window.setTimeout(() => {
-        setRemovedIds((prev) => new Set([...prev, ...courseIds]))
-        setRemovingIds(new Set())
-      }, 650)
+
+    if (!isFlex) {
+      // Original behaviour for non-flex scenarios: drop courses + celebrate immediately.
+      if (courseIds.length) {
+        setRemovingIds(new Set(courseIds))
+        window.setTimeout(() => {
+          setRemovedIds((prev) => new Set([...prev, ...courseIds]))
+          setRemovingIds(new Set())
+        }, 650)
+      }
+      setCelebrateSkillId(s.id)
+      window.setTimeout(() => setCelebrateSkillId(null), 2200)
+      return
     }
-    setCelebrateSkillId(s.id)
-    window.setTimeout(() => setCelebrateSkillId(null), 2200)
+
+    // Flex: Personal-flow choreography. Celebrate near the bar shortly after the
+    // modal closes, then drop any remaining course(s) for this skill (keep extras).
+    window.setTimeout(() => {
+      setCelebrateSkillId(s.id)
+      window.setTimeout(() => setCelebrateSkillId(null), 1600)
+    }, 750)
+    if (courseIds.length) {
+      window.setTimeout(() => {
+        setRemovingIds(new Set(courseIds))
+        window.setTimeout(() => {
+          setRemovedIds((prev) => new Set([...prev, ...courseIds]))
+          setRemovingIds(new Set())
+        }, 650)
+      }, 900)
+    }
+    // When the final skill is verified, celebrate the whole goal: mark it complete
+    // (green check + Congrats card) at the same moment the confetti starts falling,
+    // then stop the confetti once it's rained down.
+    const willAllBeVerified = activeSkills.every((sk) => sk.id === s.id || verifiedSkillIds.has(sk.id))
+    if (willAllBeVerified) {
+      window.setTimeout(() => {
+        setConfettiOn(true)
+        setGoalComplete(true)
+        window.setTimeout(() => setConfettiOn(false), 3800)
+      }, 1700)
+    }
   }
 
   // Glow the given cards (spin + grey loading bar) for GLOW_MS, then reveal the
@@ -322,11 +421,18 @@ export default function GoalPage() {
   // skill only improved get their lecture count re-optimized (loading bar → bold reveal);
   // courses whose skill already met the target glow, then collapse out of the path.
   useEffect(() => {
-    if (stage !== 'done' || !config.optimizeBySkill || flexExtras.length > 0) return
+    if (stage !== 'done' || !config.optimizeBySkill) return
     const optimizeIds = new Set(
-      activeCourses.filter((c) => (c.kind ?? 'course') === 'course' && flexAdjustCourse(c).lectures !== c.lectures).map((c) => c.id),
+      activeCourses
+        .filter((c) => (c.kind ?? 'course') === 'course' && !removedIds.has(c.id) && flexAdjustCourse(c).lectures !== c.lectures)
+        .map((c) => c.id),
     )
-    const glowIds = new Set([...optimizeIds, ...reachedCourseIds])
+    // Reached-target skills drop their course AND any generated role play / lab.
+    const reachedExtraIds = new Set(
+      flexExtras.filter((e) => reachedSkillIds.has(skillByTag(e.skillTag)?.id ?? '')).map((e) => e.id),
+    )
+    const reachedItemIds = new Set([...reachedCourseIds, ...reachedExtraIds])
+    const glowIds = new Set([...optimizeIds, ...reachedItemIds])
     if (!glowIds.size) return
     setAnimatingIds(glowIds)
     window.setTimeout(() => {
@@ -335,15 +441,15 @@ export default function GoalPage() {
         setJustUpdatedIds(optimizeIds)
         window.setTimeout(() => setJustUpdatedIds(new Set()), 2000)
       }
-      if (reachedCourseIds.size) {
-        setRemovingIds(new Set(reachedCourseIds)) // start the collapse/fade exit
+      if (reachedItemIds.size) {
+        setRemovingIds(new Set(reachedItemIds)) // start the collapse/fade exit → archive
         const reachedNames = activeSkills.filter((s) => reachedSkillIds.has(s.id)).map((s) => s.name)
         setMessages((prev) => [
           ...prev,
           { id: nextId(), role: 'assistant', text: reachedTargetMessage(reachedNames) },
         ])
         window.setTimeout(() => {
-          setRemovedIds((prev) => new Set([...prev, ...reachedCourseIds]))
+          setRemovedIds((prev) => new Set([...prev, ...reachedItemIds]))
           setRemovingIds(new Set())
           setPrimaryAssessIds(new Set(reachedSkillIds)) // Assess → primary (also drives the tooltip)
         }, 650)
@@ -453,6 +559,22 @@ export default function GoalPage() {
     }, 1200)
   }
 
+  // Flex: open the content player for a suggested course in a new tab (like the
+  // Personal flow). Video courses play the topic clip; role plays / labs pass their
+  // kind so the player renders the right experience.
+  const openPlayer = (course: Course) => {
+    const base = import.meta.env.BASE_URL
+    const isDesignTopic = /design|prototyp|ux|ui/i.test(`${course.skillTag} ${course.title}`)
+    const q = new URLSearchParams({
+      title: course.title,
+      tag: course.skillTag,
+      lectures: String(course.lectures || 12),
+      kind: course.kind ?? 'course',
+      video: isDesignTopic ? 'design' : 'programming',
+    })
+    window.open(`${base}${flowId}/player?${q.toString()}`, '_blank', 'noopener')
+  }
+
   /**
    * Handle a change request while the "Review your goal" card is shown.
    * Only weekly study time, current role, and skill proficiency can change;
@@ -482,6 +604,51 @@ export default function GoalPage() {
         return
       }
       // Anything else: fall through and treat as a fresh request.
+    }
+
+    // 0.5) Flex: resolving a pending "role play, lab, or both?" question.
+    if (awaitingExtrasChoice) {
+      // Explicit bail-out.
+      if (/\b(never\s*mind|nevermind|cancel|forget|no\s*thanks|nothing|none|stop)\b|やめ|なし|いい(です)?|結構/i.test(t)) {
+        setAwaitingExtrasChoice(false)
+        replyAfterThinking('No problem — I\'ve left your learning path as it is. Let me know if you change your mind.')
+        return
+      }
+      const wantsRP = /role\s*play|roleplay|ロールプレイ/i.test(t)
+      const wantsLab = /hands[-\s]?on|\blabs?\b|ハンズオン|ラボ/i.test(t)
+      const wantsBoth = /\bboth\b|two|either|any|一緒|両方|りょうほう|どっち?も|全部|ぜんぶ/i.test(t) || (wantsRP && wantsLab)
+      const choice: FlexExtraChoice | null = wantsBoth ? 'both' : wantsRP ? 'roleplay' : wantsLab ? 'lab' : null
+      if (!choice) {
+        replyAfterThinking("Sorry, I didn't catch that. Would you like a role play, a hands-on lab, or both?")
+        return
+      }
+      setAwaitingExtrasChoice(false)
+      // Skills already at target (self-report OR verified assessment) get no extra
+      // content — same rule as courses.
+      const eligibleSkills = activeSkills.filter((s) => !reachedForPracticeIds.has(s.id))
+      if (eligibleSkills.length === 0) {
+        replyAfterThinking("You've already reached the target proficiency for every skill in this goal, so there's no extra practice to add — nice work! 🎉")
+        return
+      }
+      const extras = makeFlexExtras(eligibleSkills, choice)
+      // Video courses that will actually shrink once trimmed to their optimized length.
+      const toGlow = new Set(
+        activeCourses
+          .filter((c) => (c.kind ?? 'course') === 'course' && c.optimized && flexAdjustCourse(c).lectures > c.optimized.lectures)
+          .map((c) => c.id),
+      )
+      const label =
+        choice === 'both' ? 'a role play and a hands-on lab' : choice === 'roleplay' ? 'a role play' : 'a hands-on lab'
+      const scope = eligibleSkills.length < activeSkills.length ? " for the skills you haven't reached yet" : ' for each skill'
+      replyAfterThinking(
+        `Done — I've trimmed some of the video lectures and added ${label}${scope} to your path.`,
+        () => {
+          setVideoTrimmed(true)
+          setFlexExtras(extras)
+          runGlow(toGlow)
+        },
+      )
+      return
     }
 
     // 1) Target timeline — hard requirement, not changeable.
@@ -552,23 +719,14 @@ export default function GoalPage() {
     if (config.optimizeBySkill && wantsInteractive) {
       if (flexExtras.length > 0) {
         replyAfterThinking(
-          'Your path already includes a role play and a hands-on lab. Let me know if you want to swap in anything else.',
+          'Your path already includes hands-on practice for each skill. Let me know if you want to swap in anything else.',
         )
         return
       }
-      // Courses that will actually shrink when trimmed to their optimized length.
-      const toGlow = new Set(
-        activeCourses
-          .filter((c) => (c.kind ?? 'course') === 'course' && c.optimized && flexAdjustCourse(c).lectures > c.optimized.lectures)
-          .map((c) => c.id),
-      )
+      // Ask what to add rather than assuming — the follow-up is resolved above (0.5).
+      setAwaitingExtrasChoice(true)
       replyAfterThinking(
-        "Good call — practicing by doing sticks better. I've trimmed some of the video lectures and added a role play and a hands-on lab to your path.",
-        () => {
-          setVideoTrimmed(true)
-          setFlexExtras(COURSES_FLEX_EXTRAS)
-          runGlow(toGlow)
-        },
+        'Good call — practicing by doing sticks better. Would you like me to add a role play, a hands-on lab, or both for each skill?',
       )
       return
     }
@@ -577,8 +735,16 @@ export default function GoalPage() {
     const mentionsPath =
       /learning\s*path|refine|\bpath\b|swap\s+(a|the|out)?\s*course|add\s+(a|more)?\s*courses?|remove\s+(a)?\s*course|different\s+courses?|adjust\s+(the\s+)?(courses?|path)|curriculum|パス|コースを/.test(t)
     if (mentionsPath) {
+      if (flexExtras.length > 0) {
+        replyAfterThinking(
+          'Your path already includes hands-on practice for each skill. Let me know if you want to swap in anything else.',
+        )
+        return
+      }
+      // Funnel a generic "refine my path" into the concrete practice option.
+      setAwaitingExtrasChoice(true)
       replyAfterThinking(
-        "Sure — I can refine your learning path. Would you like to add more depth on a specific skill, swap out a course, or adjust the pace? Let me know what you'd like and I'll update it.",
+        'Sure — I can fine-tune your learning path. For more practice I can trim the video lectures and add hands-on work for each skill. Would you like a role play, a hands-on lab, or both?',
       )
       return
     }
@@ -613,9 +779,19 @@ export default function GoalPage() {
       return
     }
 
-    // 5) Out of scope.
+    // 5) Out of scope — tailor the reply to *why* we couldn't act on it.
+    // Flex can also refine the learning path; other scenarios cannot.
+    const canDo = isFlex
+      ? 'your weekly study time, current role, skill proficiency, or refine your learning path'
+      : `your weekly study time, current role, or skill proficiency${isDone ? '' : ' before you confirm'}`
+    if (looksLikeGibberish(text)) {
+      replyAfterThinking(
+        `Sorry, I didn't quite catch that. Could you rephrase? I can adjust ${canDo}.`,
+      )
+      return
+    }
     replyAfterThinking(
-      "I can only adjust your weekly study time, current role, or skill proficiency before you confirm. What would you like to change?",
+      `That's a bit outside what I can help with for this goal. I can adjust ${canDo} — what would you like to change?`,
     )
   }
 
@@ -748,8 +924,8 @@ export default function GoalPage() {
   const [panelOpen, setPanelOpen] = useState(true)
   const [panelView, setPanelView] = useState<AltusView>('altus')
 
-  // Resizable Altus panel — 480px (Figma) is the minimum; drag the handle to widen.
-  const PANEL_MIN = 480
+  // Resizable Altus panel — 500px is the minimum; drag the handle to widen.
+  const PANEL_MIN = 500
   const PANEL_MAX = 760
   const [panelWidth, setPanelWidth] = useState(PANEL_MIN)
   const [dragging, setDragging] = useState(false)
@@ -798,7 +974,7 @@ export default function GoalPage() {
         <div className="flex flex-1 overflow-hidden">
           <div className="min-w-0 flex-1 overflow-y-auto bg-surface-pale px-lg py-md">
             <div className="mx-auto flex max-w-[860px] flex-col gap-md">
-              <GoalHeader title={config.goalTitle} fromLabel={config.fromLabel} />
+              <GoalHeader title={config.goalTitle} fromLabel={config.fromLabel} complete={goalComplete} />
 
               {/* Skills card with optional ease-in reveal for custom scenario */}
               <div
@@ -823,9 +999,11 @@ export default function GoalPage() {
                   onTakeAssessment={() => startProficiency()}
                   primaryAssessIds={primaryAssessIds}
                   verifiedSkillIds={verifiedSkillIds}
+                  verifiedScores={verifiedScores}
                   celebrateSkillId={celebrateSkillId}
                   assessOnboardingOpen={primaryAssessIds.size > 0 && !assessOnboardingDismissed}
                   onDismissAssessOnboarding={() => setAssessOnboardingDismissed(true)}
+                  targetStyle={isFlex ? 'range' : undefined}
                 />
               </div>
 
@@ -836,17 +1014,39 @@ export default function GoalPage() {
                   animateLeft && pathContentReady && !pathAnimated && 'translate-y-2 opacity-0',
                 )}
               >
-                <LearningPathCard
-                  courses={displayedCourses}
-                  skeleton={pathSkeleton}
-                  staticSkeleton={config.staticPlaceholder && !pathShimmer}
-                  curated={config.pathMode === 'fixed'}
-                  animatingIds={animatingIds}
-                  justUpdatedIds={justUpdatedIds}
-                  removingIds={removingIds}
-                  reachedIds={reachedCourseIds}
-                />
+                {goalComplete && displayedCourses.length === 0 ? (
+                  <CongratsCard
+                    onSeeGoals={() =>
+                      navigate('/learning-goals', {
+                        state: { completedGoalId: FLOW_GOAL_CARD_ID[flowId ?? ''] },
+                      })
+                    }
+                  />
+                ) : (
+                  <LearningPathCard
+                    courses={displayedCourses}
+                    skeleton={pathSkeleton}
+                    staticSkeleton={config.staticPlaceholder && !pathShimmer}
+                    curated={config.pathMode === 'fixed'}
+                    animatingIds={animatingIds}
+                    justUpdatedIds={justUpdatedIds}
+                    removingIds={removingIds}
+                    reachedIds={reachedCourseIds}
+                    onCourseClick={isFlex ? openPlayer : undefined}
+                  />
+                )}
               </div>
+
+              {/* Flex: collapsible archive of items dropped once their skill reached target */}
+              {isFlex && archivedItems.length > 0 && (
+                <ArchiveSection
+                  courses={archivedItems}
+                  open={archiveOpen}
+                  onToggle={() => setArchiveOpen((o) => !o)}
+                  onCourseClick={openPlayer}
+                  badgeLabel="Reached target"
+                />
+              )}
             </div>
           </div>
 
@@ -969,6 +1169,7 @@ export default function GoalPage() {
       {assessmentSkill && (
         <AssessmentModal
           skill={assessmentSkill}
+          score={earnedScore(assessmentSkill.target, Math.max(activeSkills.findIndex((sk) => sk.id === assessmentSkill.id), 0))}
           goal={{
             title: config.goalTitle,
             deadline: GOAL_META.dueDate,
@@ -981,6 +1182,9 @@ export default function GoalPage() {
           onComplete={completeAssessment}
         />
       )}
+
+      {/* Full-screen celebration once every skill is verified */}
+      {confettiOn && <Confetti />}
     </div>
   )
 }

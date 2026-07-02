@@ -48,6 +48,7 @@ export interface FlowConfig {
 const ROLE_BY_PERSONA: Record<Persona, string> = {
   'product-manager': 'Product Manager',
   'data-scientist': 'Data Scientist',
+  'product-designer': 'Product Designer',
 }
 
 const ROLE_Q = "What's your current role?"

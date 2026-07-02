@@ -69,8 +69,8 @@ const SCENARIOS: Record<ScenarioId, Omit<FlowConfig, 'role'>> = {
   fixed: {
     goalTitle: 'AI benchmark fluency',
     altusGoalName: 'AI Benchmark Fluency',
-    altusDueDate: 'Sept 30, 2026',
-    intro: [`Your organization has assigned you the goal “AI Benchmark Fluency” by Sept 30, 2026. Let's identify your current skill proficiency and create a learning path to help you achieve it.`, ROLE_Q],
+    altusDueDate: 'Aug 31, 2026',
+    intro: [`Your organization has assigned you the goal “AI Benchmark Fluency” by Aug 31, 2026. Let's identify your current skill proficiency and create a learning path to help you achieve it.`, ROLE_Q],
     proficiencyPrompt: PROMPT_DEFAULT,
     doneStyle: 'simple',
     doneMessage: DONE_SIMPLE,
@@ -85,8 +85,8 @@ const SCENARIOS: Record<ScenarioId, Omit<FlowConfig, 'role'>> = {
   flex: {
     goalTitle: 'Upskilling in Generative AI',
     altusGoalName: 'Upskilling in Generative AI',
-    altusDueDate: 'Sept 30, 2026',
-    intro: [`VP of Product, Marcus G. has assigned you the goal “Upskilling in Generative AI” by Sept 30, 2026. Let's identify your current skill proficiency and create a learning path to help you achieve it.`, ROLE_Q],
+    altusDueDate: 'Aug 31, 2026',
+    intro: [`VP of Product, Marcus G. has assigned you the goal “Upskilling in Generative AI” by Aug 31, 2026. Let's identify your current skill proficiency and create a learning path to help you achieve it.`, ROLE_Q],
     proficiencyPrompt: PROMPT_DEFAULT,
     doneStyle: 'simple',
     doneMessage: DONE_SIMPLE,
@@ -104,8 +104,8 @@ const SCENARIOS: Record<ScenarioId, Omit<FlowConfig, 'role'>> = {
   open: {
     goalTitle: 'Upskilling in AI',
     altusGoalName: 'AI Benchmark Fluency',
-    altusDueDate: 'Sept 30, 2026',
-    intro: [`Your organization has assigned you the goal “AI Benchmark Fluency” by Sept 30, 2026. Let's identify your current skill proficiency and create a learning path to help you achieve it.`, ROLE_Q],
+    altusDueDate: 'Aug 31, 2026',
+    intro: [`Your organization has assigned you the goal “AI Benchmark Fluency” by Aug 31, 2026. Let's identify your current skill proficiency and create a learning path to help you achieve it.`, ROLE_Q],
     proficiencyPrompt: PROMPT_DEFAULT,
     doneStyle: 'personalized',
     doneMessage: DONE_PERSONALIZED,

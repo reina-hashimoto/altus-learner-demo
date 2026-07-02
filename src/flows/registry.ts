@@ -1,7 +1,7 @@
 import GoalPage from '@/screens/GoalPage'
 import AdminGoalFlow from '@/screens/beta/admin/AdminGoalFlow'
 import PersonalGoalFlow from '@/screens/beta/personal/PersonalGoalFlow'
-import CustomGoalFlow from '@/screens/beta/custom/CustomGoalFlow'
+import HomeGate from '@/screens/beta/home/HomeGate'
 import type { Flow } from './types'
 
 /**
@@ -45,7 +45,8 @@ export const flows: Flow[] = [
   flow('fixed-pm', 'fixed', '2) Fixed', 'Org-curated learning path is fixed up front; the learner self-assesses against it.', 'product-manager', ['7012:70549', '7012:76886', '7012:78718', '7012:80263', '7012:81380', '7012:84343']),
   flow('fixed-ds', 'fixed', '2) Fixed', 'Org-curated learning path is fixed up front; the learner self-assesses against it.', 'data-scientist', ['7012:85306', '7012:85826', '7012:86346', '7012:86866', '7012:87386', '7012:87906']),
 
-  flow('flex-pm', 'flex', '3) Flex', 'Altus tailors a suggested learning path the learner can review and adjust.', 'product-manager', ['7021:15769', '7021:16808', '7021:17847', '7021:18886', '7021:19925', '7021:20964', '7021:30771', '7021:27603', '7021:39827']),
+  // flex-pm enters via the Udemy Business homepage (assigned-goal banner) → dashboard.
+  { ...flow('flex-pm', 'flex', '3) Flex', 'Altus tailors a suggested learning path the learner can review and adjust.', 'product-manager', ['7021:15769', '7021:16808', '7021:17847', '7021:18886', '7021:19925', '7021:20964', '7021:30771', '7021:27603', '7021:39827']), component: HomeGate },
   flow('flex-ds', 'flex', '3) Flex', 'Altus tailors a suggested learning path the learner can review and adjust.', 'data-scientist', ['7021:31722', '7021:32242', '7021:32762', '7021:33282', '7021:33802', '7021:34322', '7021:34848', '7021:35374', '7021:40347']),
 
   flow('open-pm', 'open', '4) Open', 'No learning path exists yet; Altus builds one from the goal and the learner’s skills.', 'product-manager', ['7021:41705', '7021:43978', '7021:48914', '7021:49943', '7021:50972', '7021:52133']),
@@ -62,7 +63,7 @@ export const flows: Flow[] = [
     scenario: '5) Custom',
     scenarioBlurb: 'The goal, role→skills mapping, and target proficiency are pre-assigned; the learner confirms the details, then Altus generates the path.',
     persona: 'product-manager',
-    component: CustomGoalFlow,
+    component: HomeGate,
     figmaNodes: ['7021:58693', '7036:97888', '7036:98754', '7036:99722', '7036:100710', '7036:101746'],
   },
   {
@@ -73,7 +74,7 @@ export const flows: Flow[] = [
     scenario: '5) Custom',
     scenarioBlurb: 'The goal, role→skills mapping, and target proficiency are pre-assigned; the learner confirms the details, then Altus generates the path.',
     persona: 'product-designer',
-    component: CustomGoalFlow,
+    component: HomeGate,
     figmaNodes: ['7036:103030', '7036:103586', '7036:104132', '7036:104626', '7036:104986', '7036:105441'],
   },
 ]

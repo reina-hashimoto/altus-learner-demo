@@ -1,6 +1,7 @@
 import GoalPage from '@/screens/GoalPage'
 import AdminGoalFlow from '@/screens/beta/admin/AdminGoalFlow'
 import PersonalGoalFlow from '@/screens/beta/personal/PersonalGoalFlow'
+import DraftGoalFlow from '@/screens/beta/draft/DraftGoalFlow'
 import HomeGate from '@/screens/beta/home/HomeGate'
 import type { Flow } from './types'
 
@@ -39,6 +40,14 @@ export const flows: Flow[] = [
     blurb: 'Learner sets a personal goal → setup → goal detail (Altus active, then disabled).',
     component: PersonalGoalFlow,
     figmaNodes: ['285:7120', '777:43571', '1095:55993', '1100:58085'],
+  },
+  {
+    id: 'draft-sample',
+    tab: 'beta',
+    status: 'ready',
+    label: 'Draft goal (sample)',
+    blurb: 'A saved draft goal — chat paused right after Altus asks for the learner’s role.',
+    component: DraftGoalFlow,
   },
 
   // ── Post-beta: scenario × persona ──

@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { ChevronRight, Sparkles, Plus, History, ChevronDown, Check } from 'lucide-react'
+import { Sparkles, Plus, History, ChevronDown, Check, MoreVertical } from 'lucide-react'
 import { cn } from '@/components/ui/utils'
 import { UBHeader } from '@/components/shell/UBHeader'
+import { Button } from '@/components/ui/button'
+import { InfoModal } from '@/features/goal/InfoModal'
 import { COURSES_AI, COURSES_OPEN_PM, COURSES_CUSTOM_PM, COURSES_CUSTOM_DESIGN, type Course } from '@/data/goal'
 import { PERSONAL_COURSES, COURSE_INSTRUCTOR } from '@/screens/beta/personal/data'
 import { CollapsibleNav } from '@/screens/beta/skills-profile/CollapsibleNav'
@@ -22,9 +24,11 @@ interface GoalDef {
   skills: string[]
   completed: number
   total: number
-  course: Course
+  course?: Course
   courseProgress: number
   instructor: string
+  /** No learning path generated yet — shows "Draft" in the progress ring, hides "See details". */
+  isDraft?: boolean
 }
 
 // Active goals shown by default, in presentation order.
@@ -85,6 +89,20 @@ const ACTIVE_GOALS: GoalDef[] = [
     courseProgress: 75,
     instructor: 'Dr. Diana McKinsey',
   },
+  {
+    id: 'draft-sample',
+    flowId: 'draft-sample',
+    category: '',
+    title: 'Improve public speaking skills',
+    deadline: 'October, 2026',
+    type: 'personal',
+    skills: [],
+    completed: 0,
+    total: 0,
+    courseProgress: 0,
+    instructor: '',
+    isDraft: true,
+  },
 ]
 
 // Archived goals — hidden by default, revealed via the Archived accordion.
@@ -121,8 +139,8 @@ const ARCHIVED_GOALS: GoalDef[] = [
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-/** Circular progress ring used inside goal cards. */
-function ProgressRing({ completed, total }: { completed: number; total: number }) {
+/** Circular progress ring used inside goal cards. Shows "Draft" when no path exists yet. */
+function ProgressRing({ completed, total, isDraft }: { completed: number; total: number; isDraft?: boolean }) {
   const size = 48
   const stroke = 3
   const r = (size - stroke) / 2
@@ -131,8 +149,15 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
   return (
     <span className="relative flex size-12 shrink-0 items-center justify-center">
       <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-purple-150)" strokeWidth={stroke} />
-        {pct > 0 && (
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={isDraft ? 'var(--color-gray-200)' : 'var(--color-purple-150)'}
+          strokeWidth={stroke}
+        />
+        {!isDraft && pct > 0 && (
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -146,9 +171,13 @@ function ProgressRing({ completed, total }: { completed: number; total: number }
           />
         )}
       </svg>
-      <span className="text-xs font-medium text-ink tabular-nums">
-        {completed}/{total}
-      </span>
+      {isDraft ? (
+        <span className="text-[10px] font-medium text-ink-subdued">Draft</span>
+      ) : (
+        <span className="text-xs font-medium text-ink tabular-nums">
+          {completed}/{total}
+        </span>
+      )}
     </span>
   )
 }
@@ -167,49 +196,112 @@ function CompleteCheck() {
   )
 }
 
-/** Single goal card matching the Figma LectureProductCard structure. */
-function GoalCard({ goal, complete = false }: { goal: GoalDef; complete?: boolean }) {
-  const isOrg = goal.type === 'org'
+/** Small "⋯" menu on personal goal cards — currently offers Delete goal only. */
+function CardMenu({ onDelete }: { onDelete: () => void }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Goal options"
+        className="flex size-8 items-center justify-center rounded-md text-ink-subdued transition-colors hover:bg-surface-midtone hover:text-ink"
+      >
+        <MoreVertical className="size-5" strokeWidth={1.75} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-50 mt-xs w-[160px] overflow-hidden rounded-md border border-line-subdued bg-surface py-xs shadow-[0_2px_8px_rgba(140,134,147,0.16),0_4px_16px_rgba(140,134,147,0.12)]">
+            <button
+              onClick={() => {
+                setOpen(false)
+                onDelete()
+              }}
+              className="flex w-full items-center px-md py-xs text-left text-sm text-ink transition-colors hover:bg-surface-pale"
+            >
+              Delete goal
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
-  const courseMeta = `${goal.course.lectures} lectures · ${goal.course.duration}`
+/** Single goal card matching the Figma LectureProductCard structure. */
+function GoalCard({
+  goal,
+  complete = false,
+  onRequestDelete,
+}: {
+  goal: GoalDef
+  complete?: boolean
+  onRequestDelete: (goal: GoalDef) => void
+}) {
+  const navigate = useNavigate()
+  const isOrg = goal.type === 'org'
+  const course = goal.course
 
   // The resumable course card only shows once content is in progress.
   const p = goal.courseProgress
-  const inProgress = p > 0
+  const inProgress = !goal.isDraft && p > 0 && !!course
   // Progress bar: 0% neutral grey · 1–99% purple · 100% green.
   const barColor =
     p >= 100 ? 'var(--color-green-500)' : p > 0 ? 'var(--color-purple-400)' : 'var(--color-gray-300)'
 
+  // Hovering the whole card vs. the nested course card are mutually exclusive —
+  // mouseenter/mouseleave (unlike CSS :hover) only fire for the element whose
+  // bounds the pointer actually entered/left, so this cleanly tells them apart.
+  const [cardHovered, setCardHovered] = useState(false)
+  const [courseHovered, setCourseHovered] = useState(false)
+
   // Open the (already-built) video player for this course in a new tab.
   const openPlayer = () => {
+    if (!course) return
     const base = import.meta.env.BASE_URL
-    const isDesign = /design|prototyp|ux|ui/i.test(`${goal.course.skillTag} ${goal.course.title}`)
+    const isDesign = /design|prototyp|ux|ui/i.test(`${course.skillTag} ${course.title}`)
     const q = new URLSearchParams({
-      title: goal.course.title,
+      title: course.title,
       instructor: goal.instructor,
-      tag: goal.course.skillTag,
-      lectures: String(goal.course.lectures),
-      kind: goal.course.kind ?? 'course',
+      tag: course.skillTag,
+      lectures: String(course.lectures),
+      kind: course.kind ?? 'course',
       video: isDesign ? 'design' : 'programming',
     })
     window.open(`${base}${goal.flowId}/player?${q.toString()}`, '_blank', 'noopener')
   }
 
   return (
-    <div className="flex flex-col gap-md rounded-xl bg-surface p-md">
+    <div
+      onClick={() => navigate(`/${goal.flowId}`)}
+      onMouseEnter={() => setCardHovered(true)}
+      onMouseLeave={() => setCardHovered(false)}
+      className={cn(
+        'flex cursor-pointer flex-col gap-md rounded-xl border border-line-subdued p-md transition-colors',
+        cardHovered && !courseHovered ? 'bg-surface-pale' : 'bg-surface',
+      )}
+    >
       {/* Goal header row */}
       <div className="flex items-start gap-md">
-        {complete ? <CompleteCheck /> : <ProgressRing completed={goal.completed} total={goal.total} />}
-        <div className="flex flex-1 flex-col gap-xs">
-          <div>
-            <h3 className="text-lg font-medium leading-snug text-ink">
-              {goal.title}
-              <span className="ml-xs text-base font-normal text-ink-subdued">({goal.category})</span>
+        {complete ? (
+          <CompleteCheck />
+        ) : (
+          <ProgressRing completed={goal.completed} total={goal.total} isDraft={goal.isDraft} />
+        )}
+        <div className="flex min-w-0 flex-1 flex-col gap-xs">
+          <div className="min-w-0">
+            <h3 className="flex min-w-0 items-baseline gap-xs text-lg font-medium leading-snug text-ink">
+              <span className="min-w-0 truncate">{goal.title}</span>
+              {goal.category && (
+                <span className="shrink-0 whitespace-nowrap text-base font-normal text-ink-subdued">
+                  ({goal.category})
+                </span>
+              )}
             </h3>
-            <p className="text-sm text-ink-subdued">By the end of {goal.deadline}</p>
+            <p className="truncate text-sm text-ink-subdued">By the end of {goal.deadline}</p>
           </div>
           {/* Tags — single row, no wrap; show up to 2 skills + overflow */}
-          <div className="flex items-center gap-xs overflow-hidden">
+          <div className="flex min-w-0 items-center gap-xs overflow-hidden">
             <span
               className={
                 isOrg
@@ -221,7 +313,7 @@ function GoalCard({ goal, complete = false }: { goal: GoalDef; complete?: boolea
               {isOrg ? 'Organization goal' : 'Personal goal'}
             </span>
             {goal.skills.slice(0, 2).map((s) => (
-              <span key={s} className="shrink-0 max-w-[160px] truncate rounded-sm border border-line px-xs py-[3px] text-xs text-ink-subdued" title={s}>
+              <span key={s} className="min-w-0 max-w-[160px] shrink truncate rounded-sm border border-line px-xs py-[3px] text-xs text-ink-subdued" title={s}>
                 {s}
               </span>
             ))}
@@ -232,38 +324,53 @@ function GoalCard({ goal, complete = false }: { goal: GoalDef; complete?: boolea
             )}
           </div>
         </div>
-        <Link
-          to={`/${goal.flowId}`}
-          className="ml-auto flex shrink-0 items-center gap-xxs text-sm font-bold text-brand hover:underline"
-        >
-          See details
-          <ChevronRight className="size-4" strokeWidth={2.5} />
-        </Link>
+        {/* Delete is only offered on the learner's own (non admin-assigned) goals — always pinned top-right. */}
+        {!isOrg && (
+          <div className="ml-auto shrink-0 self-start">
+            <CardMenu onDelete={() => onRequestDelete(goal)} />
+          </div>
+        )}
       </div>
 
       {/* Resumable course card — only when content is in progress; opens the player */}
-      {inProgress && (
+      {inProgress && course && (
         <button
           type="button"
-          onClick={openPlayer}
-          className="ml-[72px] flex items-start gap-md rounded-lg border border-line-subdued p-md text-left transition-shadow hover:shadow-[var(--box-shadow-100)]"
+          onClick={(e) => {
+            e.stopPropagation()
+            openPlayer()
+          }}
+          onMouseEnter={(e) => {
+            e.stopPropagation()
+            setCourseHovered(true)
+          }}
+          onMouseLeave={(e) => {
+            e.stopPropagation()
+            setCourseHovered(false)
+          }}
+          className={cn(
+            'ml-[72px] flex items-start gap-md rounded-lg border border-line-subdued p-md text-left transition-colors',
+            courseHovered ? 'bg-surface-pale' : 'bg-surface',
+          )}
         >
           <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
-            <img src={goal.course.image} alt="" className="size-full object-cover" />
+            <img src={course.image} alt="" className="size-full object-cover" />
             <span className="absolute inset-0 flex items-center justify-center bg-black/30">
               <svg viewBox="0 0 24 24" className="size-5 fill-white" aria-label="Resume">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </span>
           </div>
-          <div className="flex flex-1 flex-col gap-xs">
+          <div className="flex min-w-0 flex-1 flex-col gap-xs">
             <div className="flex flex-col gap-xxs">
-              <p className="line-clamp-2 text-md font-medium leading-snug text-ink">{goal.course.title}</p>
+              <p className="line-clamp-2 text-md font-medium leading-snug text-ink">{course.title}</p>
               <p className="text-xs text-ink-subdued">{goal.instructor}</p>
             </div>
             <div className="flex flex-wrap gap-xs">
               <span className="rounded-sm border border-line px-xs py-[3px] text-xs text-ink-subdued">Course</span>
-              <span className="rounded-sm border border-line px-xs py-[3px] text-xs text-ink-subdued">{courseMeta}</span>
+              <span className="rounded-sm border border-line px-xs py-[3px] text-xs text-ink-subdued">
+                {course.lectures} lectures · {course.duration}
+              </span>
             </div>
             <div className="mt-xxs flex items-center gap-sm">
               <div className="h-1.5 flex-1 overflow-hidden rounded-round bg-line-subdued">
@@ -292,6 +399,20 @@ export default function LearningGoalsPage() {
   // card — that goal's card then shows a green check instead of its progress ring.
   const location = useLocation()
   const completedGoalId = (location.state as { completedGoalId?: string } | null)?.completedGoalId
+
+  // Mutable copies so "Delete goal" can remove a card from the list (simulates
+  // archiving it on the backend — the entry moves into the Archived accordion).
+  const [activeGoals, setActiveGoals] = useState(ACTIVE_GOALS)
+  const [archivedGoals, setArchivedGoals] = useState(ARCHIVED_GOALS)
+  const [deleteTarget, setDeleteTarget] = useState<GoalDef | null>(null)
+
+  const requestDelete = (goal: GoalDef) => setDeleteTarget(goal)
+  const confirmDelete = () => {
+    if (!deleteTarget) return
+    setActiveGoals((prev) => prev.filter((g) => g.id !== deleteTarget.id))
+    setArchivedGoals((prev) => [deleteTarget, ...prev])
+    setDeleteTarget(null)
+  }
 
   // Submitting a goal from the chat entry kicks off the Personal goal flow,
   // seeding it with the entered goal so it skips its own setup screen.
@@ -366,8 +487,8 @@ export default function LearningGoalsPage() {
 
             {/* Goals list */}
             <div className="mt-lg flex flex-col gap-md">
-              {ACTIVE_GOALS.map((g) => (
-                <GoalCard key={g.id} goal={g} complete={g.id === completedGoalId} />
+              {activeGoals.map((g) => (
+                <GoalCard key={g.id} goal={g} complete={g.id === completedGoalId} onRequestDelete={requestDelete} />
               ))}
             </div>
 
@@ -379,13 +500,13 @@ export default function LearningGoalsPage() {
                 aria-expanded={archiveOpen}
               >
                 <History className="size-4" strokeWidth={1.75} />
-                Archived ({ARCHIVED_GOALS.length})
+                Archived ({archivedGoals.length})
                 <ChevronDown className={cn('size-4 transition-transform', archiveOpen ? 'rotate-180' : '')} strokeWidth={2} />
               </button>
               {archiveOpen && (
                 <div className="flex w-full animate-altus-fadein flex-col gap-md">
-                  {ARCHIVED_GOALS.map((g) => (
-                    <GoalCard key={g.id} goal={g} />
+                  {archivedGoals.map((g) => (
+                    <GoalCard key={g.id} goal={g} onRequestDelete={requestDelete} />
                   ))}
                 </div>
               )}
@@ -398,6 +519,24 @@ export default function LearningGoalsPage() {
           </div>
         </main>
       </div>
+
+      {/* Delete-goal confirmation — centered system popup, grey transparent scrim */}
+      <InfoModal open={!!deleteTarget} title="Delete goal?" onClose={() => setDeleteTarget(null)}>
+        <div className="flex flex-col gap-md">
+          <p className="text-sm text-ink-subdued">
+            Are you sure you want to delete “{deleteTarget?.title}”? This will remove it from your Learning goals
+            list.
+          </p>
+          <div className="flex justify-end gap-sm">
+            <Button udStyle="secondary" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button udStyle="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </div>
+        </div>
+      </InfoModal>
     </div>
   )
 }

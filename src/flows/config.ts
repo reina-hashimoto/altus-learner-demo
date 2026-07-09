@@ -86,7 +86,9 @@ const SCENARIOS: Record<ScenarioId, Omit<FlowConfig, 'role'>> = {
     goalTitle: 'Upskilling in Generative AI',
     altusGoalName: 'Upskilling in Generative AI',
     altusDueDate: 'Aug 31, 2026',
-    intro: [`VP of Product, Marcus G. has assigned you the goal “Upskilling in Generative AI” by Aug 31, 2026. Let's identify your current skill proficiency and create a learning path to help you achieve it.`, ROLE_Q],
+    // Flex: the org already knows the learner's role from the assignment, so
+    // there's no role question — the intro goes straight into proficiency.
+    intro: [`VP of Product, Marcus G. has assigned you the goal “Upskilling in Generative AI” by Aug 31, 2026. Let's identify your current skill proficiency and create a learning path to help you achieve it.`],
     proficiencyPrompt: PROMPT_DEFAULT,
     doneStyle: 'simple',
     doneMessage: DONE_SIMPLE,

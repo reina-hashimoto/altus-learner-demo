@@ -150,11 +150,19 @@ export interface UseChatThreads {
  * @param storageKey localStorage key — namespace per flow/scenario so each
  *             goal's thread list is independent (defaults to a shared key).
  */
-export function useChatThreads(seed: () => ChatThread[], storageKey: string = STORE_KEY_DEFAULT): UseChatThreads {
+export function useChatThreads(
+  seed: () => ChatThread[],
+  storageKey: string = STORE_KEY_DEFAULT,
+  /** Thread to land on when re-entering the flow (e.g. the scripted "main"
+   *  conversation) — takes priority over whatever was last active so a stale
+   *  "New chat" left active in a previous session doesn't hide the main flow. */
+  preferredActiveId?: string,
+): UseChatThreads {
   const [threads, setThreads] = useState<ChatThread[]>(() => load(seed, storageKey))
-  const [activeId, setActiveId] = useState<string | null>(
-    () => threads[0]?.id ?? null,
-  )
+  const [activeId, setActiveId] = useState<string | null>(() => {
+    if (preferredActiveId && threads.some((t) => t.id === preferredActiveId)) return preferredActiveId
+    return threads[0]?.id ?? null
+  })
 
   // Persist.
   useEffect(() => {

@@ -153,6 +153,7 @@ export default function GoalPage() {
       ...makeSampleThreads(),
     ],
     `altus.threads.${flow.id}`,
+    MAIN_THREAD_ID,
   )
   const [historyOpen, setHistoryOpen] = useState(false)
   const onMainThread = chats.activeId === MAIN_THREAD_ID
@@ -566,6 +567,19 @@ export default function GoalPage() {
       setStage('proficiency')
     }, delay)
   }
+
+  // Flex: the org already knows the learner's role from the assignment, so
+  // skip the role question entirely — once the intro finishes, go straight
+  // into the proficiency self-report prompt (no fake "role" user bubble).
+  useEffect(() => {
+    if (!isFlex || stage !== 'intro' || introPhase < introMessages.length) return
+    const t = window.setTimeout(() => {
+      setUserRole(config.role)
+      startProficiency()
+    }, 0)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFlex, stage, introPhase])
 
   const isRoleRelated = (input: string) => {
     const words = config.role.toLowerCase().split(' ')

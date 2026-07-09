@@ -259,6 +259,7 @@ export default function CustomGoalFlow() {
       ...makeSampleThreads(),
     ],
     `altus.threads.${flow.id}`,
+    MAIN_THREAD_ID,
   )
   const [historyOpen, setHistoryOpen] = useState(false)
   const onMainThread = chats.activeId === MAIN_THREAD_ID

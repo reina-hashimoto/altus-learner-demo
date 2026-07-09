@@ -16,6 +16,8 @@ import { cn } from '@/components/ui/utils'
 import { Button } from '@/components/ui/button'
 import altusLogo from '@/assets/altus-logo.png'
 import { TypingIndicator } from './TypingIndicator'
+import { HistoryButton, NewChatButton, ChatHistory } from './ChatHistory'
+import type { ChatThreadVM } from './chatThreads'
 import {
   SkillProficiencyForm,
   type ProficiencySelections,
@@ -75,6 +77,15 @@ interface AltusPanelProps {
   onOpenLevelDefs?: () => void
   /** Skill names driving the role-oriented "Company trends" items in Your week. */
   trendsSkills?: string[]
+  /** Chat-thread history (design "1b") — all optional so panels without it are unaffected. */
+  historyOpen?: boolean
+  onToggleHistory?: () => void
+  threads?: ChatThreadVM[]
+  activeThreadId?: string | null
+  onSelectThread?: (id: string) => void
+  onNewThread?: () => void
+  onRenameThread?: (id: string, title: string) => void
+  onDeleteThread?: (id: string) => void
 }
 
 export function AltusPanel(props: AltusPanelProps) {
@@ -95,8 +106,10 @@ export function AltusPanel(props: AltusPanelProps) {
     setDraft('')
   }
 
+  const hasThreadUI = !!props.onToggleHistory
+
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-surface-pale">
+    <div className="relative flex h-full flex-col overflow-hidden bg-surface-pale">
       {/* toggle bar — fixed top */}
       <div className="shrink-0 flex items-center gap-sm px-md py-sm">
         <button className="text-ink-subdued hover:text-ink" aria-label="Collapse panel" onClick={onCollapse}>
@@ -110,6 +123,12 @@ export function AltusPanel(props: AltusPanelProps) {
             <UdemyIcon name="trending-graph" size={16} /> Your week
           </ToggleTab>
         </div>
+        {view === 'altus' && hasThreadUI && (
+          <>
+            <HistoryButton onClick={props.onToggleHistory!} />
+            <NewChatButton onClick={props.onNewThread!} />
+          </>
+        )}
       </div>
 
       {/* conversation — scrolls internally, min-h-0 required so flex doesn't override overflow */}
@@ -221,6 +240,20 @@ export function AltusPanel(props: AltusPanelProps) {
           </div>
         )}
       </div>
+
+      {/* Chat-thread history overlay — covers the conversation when open */}
+      {hasThreadUI && (
+        <ChatHistory
+          open={!!props.historyOpen}
+          threads={props.threads ?? []}
+          activeId={props.activeThreadId ?? null}
+          onClose={props.onToggleHistory!}
+          onSelect={props.onSelectThread ?? (() => {})}
+          onCreate={props.onNewThread ?? (() => {})}
+          onRename={props.onRenameThread ?? (() => {})}
+          onDelete={props.onDeleteThread ?? (() => {})}
+        />
+      )}
     </div>
   )
 }

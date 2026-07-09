@@ -9,6 +9,7 @@ import { LearningPathCard } from '@/features/goal/LearningPathCard'
 import { InfoModal } from '@/features/goal/InfoModal'
 import { AssessmentModal } from '@/features/goal/AssessmentModal'
 import { AltusPanel, type AltusMessage, type AltusView, type GoalReview } from '@/features/goal/altus/AltusPanel'
+import { useChatThreads, makeSampleThreads } from '@/features/goal/altus/chatThreads'
 import { UdemyIcon } from '@/components/icons/UdemyIcon'
 import type { ProficiencySelections } from '@/features/goal/SkillProficiencyForm'
 import { getFlow, defaultFlowId } from '@/flows/registry'
@@ -64,6 +65,8 @@ const VARIANTS: Record<string, Variant> = {
 }
 
 const GOAL_TITLE = 'Upskilling in Generative AI'
+/** Id of the thread that carries the scripted, flow-driven conversation. */
+const MAIN_THREAD_ID = 'main'
 const FROM_LABEL = 'From CPO, John D.'
 const TARGET_DATE = 'August 31, 2026'
 const DONE_MESSAGE =
@@ -246,6 +249,26 @@ export default function CustomGoalFlow() {
   const [replyPending, setReplyPending] = useState(false)
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
+
+  // Chat-thread history (design "1b") — namespaced per persona variant. The
+  // scripted conversation lives in the "main" thread; sample threads exist to
+  // demo switch/rename/delete/expiry.
+  const chats = useChatThreads(
+    () => [
+      { id: MAIN_THREAD_ID, title: GOAL_TITLE, messages: [], createdAt: Date.now(), updatedAt: Date.now() },
+      ...makeSampleThreads(),
+    ],
+    `altus.threads.${flow.id}`,
+  )
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const onMainThread = chats.activeId === MAIN_THREAD_ID
+
+  // Write the live, scripted conversation through into the store so it
+  // persists/sorts/expires like any other thread.
+  useEffect(() => {
+    chats.setThreadMessages(MAIN_THREAD_ID, messages)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages])
 
   const skills = adjustSkillsForLevel(variant.skills, level)
   const courses = variant.courses
@@ -553,6 +576,19 @@ export default function CustomGoalFlow() {
     else if (stage === 'done' || stage === 'review') handleFollowUp(text)
   }
 
+  // Sample/side threads don't run the scripted flow — just echo a light reply.
+  const onSend = (text: string) => {
+    if (!onMainThread) {
+      chats.appendToActive({ id: nextId(), role: 'user', text })
+      window.setTimeout(
+        () => chats.appendToActive({ id: nextId(), role: 'assistant', text: "Thanks — I'll take a look and get back to you here." }),
+        600,
+      )
+      return
+    }
+    handleSend(text)
+  }
+
   const handleProficiencySubmit = () => {
     const loadingId = nextId()
     setUpdatingSkills(true)
@@ -749,10 +785,10 @@ export default function CustomGoalFlow() {
           >
             <div className="h-full" style={{ width: panelWidth }}>
               <AltusPanel
-                messages={messages}
-                thinking={thinking}
-                showProficiencyForm={stage === 'proficiency' && !updatingSkills}
-                goalReview={goalReview}
+                messages={onMainThread ? messages : chats.activeThread?.messages ?? []}
+                thinking={onMainThread && thinking}
+                showProficiencyForm={onMainThread && stage === 'proficiency' && !updatingSkills}
+                goalReview={onMainThread ? goalReview : null}
                 goalReviewLoading={reviewLoading}
                 onConfirm={handleConfirm}
                 skills={skills}
@@ -769,13 +805,24 @@ export default function CustomGoalFlow() {
                   })
                 }
                 onProficiencySubmit={handleProficiencySubmit}
-                onSend={handleSend}
+                onSend={onSend}
                 onChip={() => {}}
                 view={panelView}
                 onViewChange={setPanelView}
                 onCollapse={() => setPanelOpen(false)}
                 onOpenLevelDefs={() => setLevelDefsOpen(true)}
                 trendsSkills={skills.map((s) => s.name)}
+                historyOpen={historyOpen}
+                onToggleHistory={() => setHistoryOpen((o) => !o)}
+                threads={chats.threads}
+                activeThreadId={chats.activeId}
+                onSelectThread={chats.select}
+                onNewThread={() => {
+                  chats.create()
+                  setHistoryOpen(false)
+                }}
+                onRenameThread={chats.rename}
+                onDeleteThread={chats.remove}
               />
             </div>
           </div>

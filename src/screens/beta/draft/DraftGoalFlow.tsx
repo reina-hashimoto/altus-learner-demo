@@ -6,6 +6,7 @@ import { UdemyIcon } from '@/components/icons/UdemyIcon'
 import { SkillsCard } from '@/features/goal/SkillsCard'
 import { LearningPathCard } from '@/features/goal/LearningPathCard'
 import { AltusPanel, type AltusMessage, type AltusView } from '@/features/goal/altus/AltusPanel'
+import { useChatThreads, makeSampleThreads } from '@/features/goal/altus/chatThreads'
 import { cn } from '@/components/ui/utils'
 
 /**
@@ -15,6 +16,8 @@ import { cn } from '@/components/ui/utils'
  * shows on the left (no skills/path yet), and the chat has nothing further to do.
  */
 const GOAL_TITLE = 'Improve public speaking skills'
+/** Id of the thread that carries the scripted, flow-driven conversation. */
+const MAIN_THREAD_ID = 'main'
 
 export default function DraftGoalFlow() {
   const [messages, setMessages] = useState<AltusMessage[]>([])
@@ -22,6 +25,27 @@ export default function DraftGoalFlow() {
   const [panelView, setPanelView] = useState<AltusView>('altus')
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
+
+  // Chat-thread history (design "1b") — Altus history is a cross-goal feature,
+  // so the draft goal gets the same History/New affordance as any other goal.
+  // The frozen demo conversation lives in the "main" thread; sample threads
+  // exist to demo switch/rename/delete/expiry.
+  const chats = useChatThreads(
+    () => [
+      { id: MAIN_THREAD_ID, title: GOAL_TITLE, messages: [], createdAt: Date.now(), updatedAt: Date.now() },
+      ...makeSampleThreads(),
+    ],
+    'altus.threads.draft-sample',
+  )
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const onMainThread = chats.activeId === MAIN_THREAD_ID
+
+  // Write the live conversation through into the store so it persists/sorts/
+  // expires like any other thread.
+  useEffect(() => {
+    chats.setThreadMessages(MAIN_THREAD_ID, messages)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages])
 
   // Same intro drip as the Personal flow: entered goal → greeting → role question.
   useEffect(() => {
@@ -48,6 +72,19 @@ export default function DraftGoalFlow() {
       { id: nextId(), role: 'user', text },
       { id: nextId(), role: 'assistant', text: "Thanks! I'll keep building out your plan — check back soon." },
     ])
+  }
+
+  // Sample/side threads get the same light reply as the main (frozen) thread.
+  const onSend = (text: string) => {
+    if (!onMainThread) {
+      chats.appendToActive({ id: nextId(), role: 'user', text })
+      window.setTimeout(
+        () => chats.appendToActive({ id: nextId(), role: 'assistant', text: "Thanks! I'll keep building out your plan — check back soon." }),
+        600,
+      )
+      return
+    }
+    handleSend(text)
   }
 
   return (
@@ -82,7 +119,7 @@ export default function DraftGoalFlow() {
           >
             <div className="h-full" style={{ width: 500 }}>
               <AltusPanel
-                messages={messages}
+                messages={onMainThread ? messages : chats.activeThread?.messages ?? []}
                 thinking={false}
                 showProficiencyForm={false}
                 skills={[]}
@@ -90,11 +127,22 @@ export default function DraftGoalFlow() {
                 chips={[]}
                 onProficiencyChange={() => {}}
                 onProficiencySubmit={() => {}}
-                onSend={handleSend}
+                onSend={onSend}
                 onChip={() => {}}
                 view={panelView}
                 onViewChange={setPanelView}
                 onCollapse={() => setPanelOpen(false)}
+                historyOpen={historyOpen}
+                onToggleHistory={() => setHistoryOpen((o) => !o)}
+                threads={chats.threads}
+                activeThreadId={chats.activeId}
+                onSelectThread={chats.select}
+                onNewThread={() => {
+                  chats.create()
+                  setHistoryOpen(false)
+                }}
+                onRenameThread={chats.rename}
+                onDeleteThread={chats.remove}
               />
             </div>
           </div>

@@ -3,7 +3,7 @@
  * but with a Personal-goal ORANGE tag and mutable weekly-time / target-date /
  * role meta. Renders a placeholder-bar skeleton before the goal is built.
  */
-import { Flag, CalendarDays, Clock, User } from 'lucide-react'
+import { Flag, CalendarDays, Clock } from 'lucide-react'
 import { PERSONAL_GOAL } from './data'
 import { GoalCompleteCheck } from '@/features/goal/GoalCompleteCheck'
 
@@ -17,7 +17,6 @@ function splitWeekly(weekly: string): { amount: string; unit: string } {
 export function PersonalGoalHeader({
   skeleton,
   weeklyTime,
-  role,
   dueDate,
   daysLeft,
   completedLabel,
@@ -25,7 +24,6 @@ export function PersonalGoalHeader({
 }: {
   skeleton: boolean
   weeklyTime: string
-  role: string
   dueDate: string
   daysLeft: string
   /** When set (goal complete), the date line reads "Completed <Month Year>". */
@@ -78,10 +76,6 @@ export function PersonalGoalHeader({
               <Clock className="size-4" strokeWidth={1.75} />
               <span className="font-bold text-ink">{amount}</span>
               <span>{unit}</span>
-            </span>
-            <span className="flex items-center gap-xs">
-              <User className="size-4" strokeWidth={1.75} />
-              <span className="font-bold text-ink">{role}</span>
             </span>
           </div>
         </>

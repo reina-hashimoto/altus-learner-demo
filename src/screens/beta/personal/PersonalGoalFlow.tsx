@@ -10,6 +10,7 @@ import { LearningPathCard } from '@/features/goal/LearningPathCard'
 import { InfoModal } from '@/features/goal/InfoModal'
 import { AssessmentModal } from '@/features/goal/AssessmentModal'
 import { AltusPanel, type AltusMessage, type AltusView, type GoalReview } from '@/features/goal/altus/AltusPanel'
+import { useChatThreads, makeSampleThreads } from '@/features/goal/altus/chatThreads'
 import { ArchiveSection } from '@/features/goal/ArchiveSection'
 import type { ProficiencySelections } from '@/features/goal/SkillProficiencyForm'
 import type { Skill, Course } from '@/data/goal'
@@ -41,6 +42,8 @@ import {
 
 const LEVEL_NAMES = ['Foundational', 'Intermediate', 'Established', 'Advanced']
 const GLOW_MS = 4000
+/** Id of the thread that carries the scripted, flow-driven conversation. */
+const MAIN_THREAD_ID = 'main'
 const BUILD_MS = 3000 // learning-path loading bar duration
 const PANEL_WIDE = 680
 const PANEL_MIN = 500
@@ -180,6 +183,31 @@ export default function PersonalGoalFlow() {
   const nextId = () => `m${++idRef.current}`
 
   const [messages, setMessages] = useState<AltusMessage[]>([])
+
+  // Chat-thread history (design "1b"). The scripted conversation lives in the
+  // "main" thread; sample threads exist to demo switch/rename/delete/expiry.
+  const chats = useChatThreads(
+    () => [
+      {
+        id: MAIN_THREAD_ID,
+        title: seededGoal || PERSONAL_GOAL.title,
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+      ...makeSampleThreads(),
+    ],
+    'altus.threads.personal-goal-e2e',
+  )
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const onMainThread = chats.activeId === MAIN_THREAD_ID
+
+  // Write the live, scripted conversation through into the store so it
+  // persists/sorts/expires like any other thread.
+  useEffect(() => {
+    chats.setThreadMessages(MAIN_THREAD_ID, messages)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages])
   // `proficiency` is the live form draft; `committedProficiency` is what's applied
   // to the chart. Re-editing keeps committed values visible (no Estimated regression).
   const [proficiency, setProficiency] = useState<ProficiencySelections>({})
@@ -462,6 +490,19 @@ export default function PersonalGoalFlow() {
     else if (stage === 'done') handleDoneRequest(text)
   }
 
+  // Sample/side threads don't run the scripted flow — just echo a light reply.
+  const onSend = (text: string) => {
+    if (!onMainThread) {
+      chats.appendToActive({ id: nextId(), role: 'user', text })
+      window.setTimeout(
+        () => chats.appendToActive({ id: nextId(), role: 'assistant', text: "Thanks — I'll take a look and get back to you here." }),
+        600,
+      )
+      return
+    }
+    handleSend(text)
+  }
+
   const handleProficiencyChange = (skillId: string, levelIndex: number | null) =>
     setProficiency((p) => {
       if (levelIndex === null) {
@@ -658,7 +699,6 @@ export default function PersonalGoalFlow() {
                   <PersonalGoalHeader
                     skeleton={!contentReady}
                     weeklyTime={weeklyTime}
-                    role={userRole}
                     dueDate={dueDateLabel}
                     daysLeft={daysLeftLabel}
                     completedLabel={completedLabel}
@@ -742,10 +782,10 @@ export default function PersonalGoalFlow() {
           >
             <div className="h-full" style={{ width: panelWidth }}>
               <AltusPanel
-                messages={messages}
-                thinking={thinking || reviewThinking}
-                showProficiencyForm={stage === 'proficiency' && !updatingSkills}
-                goalReview={goalReview}
+                messages={onMainThread ? messages : chats.activeThread?.messages ?? []}
+                thinking={onMainThread && (thinking || reviewThinking)}
+                showProficiencyForm={onMainThread && stage === 'proficiency' && !updatingSkills}
+                goalReview={onMainThread ? goalReview : null}
                 goalReviewLoading={reviewLoading}
                 onConfirm={handleConfirm}
                 skills={skills}
@@ -753,13 +793,24 @@ export default function PersonalGoalFlow() {
                 chips={[]}
                 onProficiencyChange={handleProficiencyChange}
                 onProficiencySubmit={handleProficiencySubmit}
-                onSend={handleSend}
+                onSend={onSend}
                 onChip={() => {}}
                 view={view}
                 onViewChange={setView}
                 onCollapse={() => setPanelOpen(false)}
                 onOpenLevelDefs={() => setLevelDefsOpen(true)}
                 trendsSkills={skills.map((s) => s.name)}
+                historyOpen={historyOpen}
+                onToggleHistory={() => setHistoryOpen((o) => !o)}
+                threads={chats.threads}
+                activeThreadId={chats.activeId}
+                onSelectThread={chats.select}
+                onNewThread={() => {
+                  chats.create()
+                  setHistoryOpen(false)
+                }}
+                onRenameThread={chats.rename}
+                onDeleteThread={chats.remove}
               />
             </div>
           </div>

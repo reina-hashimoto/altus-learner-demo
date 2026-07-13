@@ -18,6 +18,7 @@ import { getFlow, defaultFlowId } from '@/flows/registry'
 import { getFlowConfig, type ChipDef } from '@/flows/config'
 import { SKILLS_CUSTOM_DS, COURSES_CUSTOM_DS, makeFlexExtras, type FlexExtraChoice, GOAL_META, type Skill, type Course } from '@/data/goal'
 import { cn } from '@/components/ui/utils'
+import { withUnlockToken } from '@/components/PasswordGate'
 
 // 'review' = showing Review Your Goal card, 'confirming' = spinner + brief wait
 type Stage = 'intro' | 'proficiency' | 'review' | 'confirming' | 'done'
@@ -627,7 +628,7 @@ export default function GoalPage() {
       kind: course.kind ?? 'course',
       video: isDesignTopic ? 'design' : 'programming',
     })
-    window.open(`${base}${flowId}/player?${q.toString()}`, '_blank', 'noopener')
+    window.open(withUnlockToken(`${base}${flowId}/player?${q.toString()}`), '_blank', 'noopener')
   }
 
   /**

@@ -25,6 +25,7 @@ import {
   type Course,
 } from '@/data/goal'
 import { cn } from '@/components/ui/utils'
+import { withUnlockToken } from '@/components/PasswordGate'
 
 /**
  * Custom scenario (learner side). The goal, the role→skills mapping, and each
@@ -564,7 +565,7 @@ export default function CustomGoalFlow() {
       kind: course.kind ?? 'course',
       video: isDesignTopic ? 'design' : 'programming',
     })
-    window.open(`${base}${flow.id}/player?${q.toString()}`, '_blank', 'noopener')
+    window.open(withUnlockToken(`${base}${flow.id}/player?${q.toString()}`), '_blank', 'noopener')
   }
 
   const handleSend = (text: string) => {

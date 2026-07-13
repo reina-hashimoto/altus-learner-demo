@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Sparkles, Plus, History, ChevronDown, Check, MoreVertical } from 'lucide-react'
 import { cn } from '@/components/ui/utils'
+import { withUnlockToken } from '@/components/PasswordGate'
 import { UBHeader } from '@/components/shell/UBHeader'
 import { Button } from '@/components/ui/button'
 import { InfoModal } from '@/features/goal/InfoModal'
@@ -268,7 +269,7 @@ function GoalCard({
       kind: course.kind ?? 'course',
       video: isDesign ? 'design' : 'programming',
     })
-    window.open(`${base}${goal.flowId}/player?${q.toString()}`, '_blank', 'noopener')
+    window.open(withUnlockToken(`${base}${goal.flowId}/player?${q.toString()}`), '_blank', 'noopener')
   }
 
   return (

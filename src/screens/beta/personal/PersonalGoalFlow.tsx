@@ -15,6 +15,7 @@ import { ArchiveSection } from '@/features/goal/ArchiveSection'
 import type { ProficiencySelections } from '@/features/goal/SkillProficiencyForm'
 import type { Skill, Course } from '@/data/goal'
 import { cn } from '@/components/ui/utils'
+import { withUnlockToken } from '@/components/PasswordGate'
 import { SetupScreen } from './SetupScreen'
 import { PersonalGoalHeader } from './PersonalGoalHeader'
 import { Confetti } from './Confetti'
@@ -573,7 +574,7 @@ export default function PersonalGoalFlow() {
       kind: course.kind ?? 'course',
       video,
     })
-    window.open(`${base}${flowId}/player?${q.toString()}`, '_blank', 'noopener')
+    window.open(withUnlockToken(`${base}${flowId}/player?${q.toString()}`), '_blank', 'noopener')
   }
 
   // ── Instructor / course swap — glow + content loading, dashboard-only update ──

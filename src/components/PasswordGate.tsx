@@ -8,6 +8,16 @@ import { useEffect, useState } from 'react'
  */
 const PASSCODE_SHA256 = '27a17988f56ffebd4f4665e19b5f4f77d77c0b4b5d10bbe289c3c70709f95d91'
 const STORAGE_KEY = 'altus-demo-unlocked'
+/** URL param carried on links opened from an already-unlocked tab (e.g. the
+ *  video player, which opens in a new tab and can't see this tab's sessionStorage). */
+export const UNLOCK_PARAM = 'demoUnlocked'
+
+/** Append the unlock token to a URL opened from within the (already-unlocked) app. */
+export function withUnlockToken(url: string): string {
+  const u = new URL(url, window.location.origin)
+  u.searchParams.set(UNLOCK_PARAM, '1')
+  return u.toString()
+}
 
 async function sha256Hex(input: string): Promise<string> {
   const bytes = new TextEncoder().encode(input)
@@ -30,6 +40,23 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   // Bypass the gate entirely on localhost (dev / preview).
   useEffect(() => {
     if (/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)) setUnlocked(true)
+  }, [])
+
+  // The video player opens in a new tab (window.open with noopener), which
+  // doesn't inherit sessionStorage — so links out to it from an already-
+  // unlocked tab carry a one-time unlock token in the URL. Direct/bookmarked
+  // access without that token still hits the passcode screen below.
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (url.searchParams.get(UNLOCK_PARAM) !== '1') return
+    try {
+      sessionStorage.setItem(STORAGE_KEY, '1')
+    } catch {
+      /* ignore */
+    }
+    setUnlocked(true)
+    url.searchParams.delete(UNLOCK_PARAM)
+    window.history.replaceState(null, '', url.toString())
   }, [])
 
   if (unlocked) return <>{children}</>
